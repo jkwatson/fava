@@ -216,7 +216,7 @@ public class HttpTemplate {
     }
 
     /**
-     * Fire & Forget...don't care about the response at all.
+     * Fire &amp; Forget...don't care about the response at all.
      */
     public void post(String fullUri, Object bodyToPost) {
         postWithResponse(fullUri, bodyToPost, httpResponse -> {
