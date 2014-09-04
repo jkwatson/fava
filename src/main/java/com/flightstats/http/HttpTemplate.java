@@ -192,7 +192,7 @@ public class HttpTemplate {
             String body = CharStreams.toString(new InputStreamReader(httpResponse.getEntity().getContent()));
             if (isRetryableStatusCode(statusCode)) {
                 logger.error("Internal server error, status code " + statusCode);
-                throw new HttpException(new Details(statusCode, "Post failed to: " + httpRequest.getURI() + ".  Status = " + statusCode + ", message = " + body));
+                throw new HttpException(new Details(statusCode, httpRequest.getMethod() + " failed to: " + httpRequest.getURI() + ".  Status = " + statusCode + ", message = " + body));
             }
             Response response = new Response(statusCode, body, mapHeaders(httpResponse));
             responseConsumer.accept(response);
