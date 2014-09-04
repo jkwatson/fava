@@ -16,3 +16,18 @@ Functionality:
 
 * HttpTemplate - An easy to use wrapper on top of apache's HttpClient, which makes doing basic HTTP calls simple and painless.
 * FileSystem - An abstraction on top of both a standard local filesystem, or S3, which makes using S3 as a file storage mechanism simple.
+
+
+Available via maven central:
+```
+        <dependency>
+            <groupId>com.flightstats</groupId>
+            <artifactId>fava</artifactId>
+            <version>0.1</version>
+        </dependency>
+```
+
+Or with gradle:
+```
+        'com.flightstats:fava:0.1'
+```
