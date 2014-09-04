@@ -14,10 +14,7 @@ import org.apache.http.*;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
 import org.apache.http.client.entity.UrlEncodedFormEntity;
-import org.apache.http.client.methods.HttpGet;
-import org.apache.http.client.methods.HttpHead;
-import org.apache.http.client.methods.HttpPost;
-import org.apache.http.client.methods.HttpRequestBase;
+import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
 import org.apache.http.entity.StringEntity;
@@ -160,31 +157,48 @@ public class HttpTemplate {
     public int postWithNoResponseCodeValidation(String fullUri, Object bodyToPost, Consumer<Response> responseConsumer) {
         try {
             String bodyEntity = convertBodyToString(bodyToPost, contentType);
-            Response response = retryer.call(() -> makeHttpPost(fullUri, responseConsumer, contentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
+            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, contentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
             return response.getCode();
         } catch (ExecutionException | RetryException e) {
             throw Throwables.propagate(e);
         }
     }
 
-    private Response makeHttpPost(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) throws Exception {
+    private Response executePost(String fullUri, String contentType, HttpEntity entity) throws Exception {
+        return executePost(fullUri, x -> {}, contentType, entity);
+    }
+
+    private Response executePost(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) throws Exception {
         HttpPost httpPost = new HttpPost(fullUri);
+        return execute(httpPost, responseConsumer, contentType, entity);
+    }
+
+    private Response executePut(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) throws Exception {
+        HttpPut httpPut = new HttpPut(fullUri);
+        return execute(httpPut, responseConsumer, contentType, entity);
+    }
+
+    private Response execute(HttpEntityEnclosingRequestBase httpRequest, String contentType, HttpEntity entity) throws IOException {
+        return execute(httpRequest, x -> {}, contentType, entity);
+    }
+
+    private Response execute(HttpEntityEnclosingRequestBase httpRequest, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) throws IOException {
         try {
-            httpPost.setHeader("Content-Type", contentType);
-            httpPost.setHeader("Accept", acceptType);
-            httpPost.setEntity(entity);
-            HttpResponse httpResponse = client.execute(httpPost);
+            httpRequest.setHeader("Content-Type", contentType);
+            httpRequest.setHeader("Accept", acceptType);
+            httpRequest.setEntity(entity);
+            HttpResponse httpResponse = client.execute(httpRequest);
             int statusCode = httpResponse.getStatusLine().getStatusCode();
             String body = CharStreams.toString(new InputStreamReader(httpResponse.getEntity().getContent()));
             if (isRetryableStatusCode(statusCode)) {
                 logger.error("Internal server error, status code " + statusCode);
-                throw new HttpException(new Details(statusCode, "Post failed to: " + fullUri + ".  Status = " + statusCode + ", message = " + body));
+                throw new HttpException(new Details(statusCode, "Post failed to: " + httpRequest.getURI() + ".  Status = " + statusCode + ", message = " + body));
             }
             Response response = new Response(statusCode, body, mapHeaders(httpResponse));
             responseConsumer.accept(response);
             return response;
         } finally {
-            httpPost.reset();
+            httpRequest.reset();
         }
     }
 
@@ -208,8 +222,7 @@ public class HttpTemplate {
 
     public Response post(URI uri, byte[] bytes, String contentType) {
         try {
-            return makeHttpPost(uri.toString(), x -> {
-            }, contentType, new ByteArrayEntity(bytes));
+            return executePost(uri.toString(), contentType, new ByteArrayEntity(bytes));
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
@@ -236,13 +249,22 @@ public class HttpTemplate {
         return result.get();
     }
 
+    public Response put(URI uri, byte[] bytes, String contentType) {
+        try {
+            HttpPut httpPut = new HttpPut(uri.toString());
+            return execute(httpPut, contentType, new ByteArrayEntity(bytes));
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
     /**
      * todo: this needs a better name, but different than "post", so it doesn't collide with the other one. I hate type erasure!
      */
     public Response postWithResponse(String fullUri, Object bodyToPost, Consumer<Response> responseConsumer) {
         try {
             String bodyEntity = convertBodyToString(bodyToPost, contentType);
-            Response response = retryer.call(() -> makeHttpPost(fullUri, responseConsumer, contentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
+            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, contentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
             if (isFailedStatusCode(response.getCode())) {
                 throw new HttpException(new Details(response.getCode(), "Post failed to: " + fullUri + ". response: " + response));
             }
