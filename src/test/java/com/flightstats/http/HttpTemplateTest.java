@@ -29,7 +29,6 @@ public class HttpTemplateTest {
 
     @Test
     public void testPostWithResponse_successOnSingleAttempt() throws Exception {
-
         // given
         HttpClient httpClient = mock(HttpClient.class);
         HttpResponse httpResponse = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
@@ -62,7 +61,6 @@ public class HttpTemplateTest {
 
     @Test
     public void testPostWithResponse_successfulRetryAfterSomeErrors() throws Exception {
-
         // given
         HttpClient httpClient = mock(HttpClient.class);
         HttpResponse httpResponse = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
@@ -87,7 +85,6 @@ public class HttpTemplateTest {
 
     @Test(expected = HttpException.class)
     public void testPostWithResponse_unsuccessful400WithNoRetrying() throws Exception {
-
         // given
         HttpClient httpClient = mock(HttpClient.class);
         HttpResponse httpResponse = mock(HttpResponse.class);
@@ -113,7 +110,6 @@ public class HttpTemplateTest {
 
     @Test(expected = HttpException.class)
     public void testGetWithResponse_failedAsException() throws Exception {
-
         // given
         HttpClient httpClient = mock(HttpClient.class);
         HttpResponse httpResponse = mock(HttpResponse.class);
@@ -132,14 +128,11 @@ public class HttpTemplateTest {
         HttpTemplate httpTemplate = new HttpTemplate(httpClient, gson, null);
 
         // when/then
-        httpTemplate.get("/some_uri", (String s) -> {
-            return null;
-        });
+        httpTemplate.get("/some_uri", (String s) -> null);
     }
 
     @Test
     public void testGetWithResponse_failedStatusCode() throws Exception {
-
         // given
         HttpClient httpClient = mock(HttpClient.class);
         HttpResponse httpResponse = mock(HttpResponse.class);
