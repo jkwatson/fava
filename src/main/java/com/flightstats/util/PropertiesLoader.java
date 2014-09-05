@@ -1,6 +1,5 @@
 package com.flightstats.util;
 
-import com.google.common.base.Throwables;
 import com.google.common.io.Resources;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -20,9 +19,6 @@ public class PropertiesLoader {
 
     public Properties readProperties(String propertiesFile) {
         URL propertyFileUrl = Resources.getResource(propertiesFile);
-        if (propertyFileUrl == null) {
-            throw new RuntimeException("Property file '" + propertiesFile + "' not found");
-        }
         logger.info("Loading properties file from " + propertyFileUrl);
         try (InputStream stream = propertyFileUrl.openStream()) {
             Properties properties = new Properties();
