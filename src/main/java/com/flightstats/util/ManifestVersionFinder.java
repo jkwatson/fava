@@ -4,6 +4,7 @@ import com.google.common.base.Objects;
 import com.google.common.base.Throwables;
 
 import java.io.IOException;
+import java.io.UncheckedIOException;
 import java.net.URL;
 import java.util.jar.Attributes;
 import java.util.jar.Manifest;
@@ -17,11 +18,11 @@ import java.util.jar.Manifest;
 public class ManifestVersionFinder {
 
     /**
-     * Doesn't seem to handle inner classes.
+     * Doesn't handle inner classes.
      */
-    public String findVersion(Class<?> clazz, String defaultVersion) {
-        String className = clazz.getSimpleName() + ".class";
-        URL classUri = clazz.getResource(className);
+    public String findVersion(Class<?> contextClass, String defaultVersion) {
+        String className = contextClass.getSimpleName() + ".class";
+        URL classUri = contextClass.getResource(className);
         if (classUri == null) {
             return defaultVersion;
         }
@@ -35,14 +36,13 @@ public class ManifestVersionFinder {
 
     private String readVersionFromManifest(String defaultVersion, String classPath) {
         String manifestPath = classPath.substring(0, classPath.lastIndexOf("!") + 1) + "/META-INF/MANIFEST.MF";
-        Manifest manifest;
         try {
-            manifest = new Manifest(new URL(manifestPath).openStream());
+            Manifest manifest = new Manifest(new URL(manifestPath).openStream());
+            Attributes attr = manifest.getMainAttributes();
+            String value = attr.getValue("Implementation-Version");
+            return Objects.firstNonNull(value, defaultVersion);
         } catch (IOException e) {
-            throw Throwables.propagate(e);
+            throw new UncheckedIOException(e);
         }
-        Attributes attr = manifest.getMainAttributes();
-        String value = attr.getValue("Implementation-Version");
-        return Objects.firstNonNull(value, defaultVersion);
     }
 }
