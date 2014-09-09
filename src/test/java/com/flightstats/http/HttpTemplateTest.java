@@ -5,6 +5,8 @@ import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
+import com.google.common.collect.LinkedListMultimap;
+import com.google.common.collect.Multimap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
 import org.apache.http.Header;
@@ -12,11 +14,14 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.StatusLine;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.message.BasicHeader;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.net.URI;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
@@ -154,5 +159,34 @@ public class HttpTemplateTest {
         int statusCode = httpTemplate.get("/some_uri", mock(Consumer.class));
 
         assertEquals(400, statusCode);
+    }
+
+    @Test
+    public void testDelete() throws Exception {
+    	//GIVEN
+        String body = "any old body";
+        Multimap<String, String> expectedHeaders = LinkedListMultimap.create();
+        expectedHeaders.put("foo", "bar");
+        expectedHeaders.put("bar", "baz");
+
+        HttpClient httpClient = mock(HttpClient.class);
+        HttpResponse httpResponse = mock(HttpResponse.class);
+        StatusLine statusLine = mock(StatusLine.class);
+        HttpEntity entity = mock(HttpEntity.class);
+
+        when(httpClient.execute(isA(HttpDelete.class))).thenReturn(httpResponse);
+        when(httpResponse.getStatusLine()).thenReturn(statusLine);
+        when(statusLine.getStatusCode()).thenReturn(200);
+        when(entity.getContent()).thenReturn(new ByteArrayInputStream(body.getBytes()));
+        when(httpResponse.getEntity()).thenReturn(entity);
+        when(httpResponse.getAllHeaders()).thenReturn(new Header[]{new BasicHeader("foo", "bar"), new BasicHeader("bar", "baz")});
+
+        HttpTemplate testClass = new HttpTemplate(httpClient, null, null);
+
+        //WHEN
+        Response result = testClass.delete(URI.create("http://lmgtfy.com"));
+
+        //THEN
+        assertEquals(new Response(200, body, expectedHeaders), result);
     }
 }
