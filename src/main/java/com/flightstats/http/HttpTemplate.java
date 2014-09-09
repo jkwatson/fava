@@ -26,6 +26,7 @@ import javax.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
@@ -131,14 +132,7 @@ public class HttpTemplate {
     private Response handleRequest(HttpRequestBase request, Consumer<Response> responseConsumer) {
         try {
             HttpResponse httpResponse = client.execute(request);
-            int statusCode = httpResponse.getStatusLine().getStatusCode();
-            String body = "";
-            HttpEntity entity = httpResponse.getEntity();
-            if (entity != null) {
-                InputStream content = entity.getContent();
-                body = CharStreams.toString(new InputStreamReader(content));
-            }
-            Response response = new Response(statusCode, body, mapHeaders(httpResponse));
+            Response response = convertHttpResponse(httpResponse);
             responseConsumer.accept(response);
             return response;
         } catch (IOException e) {
@@ -146,6 +140,17 @@ public class HttpTemplate {
         } finally {
             request.reset();
         }
+    }
+
+    private Response convertHttpResponse(HttpResponse httpResponse) throws IOException {
+        int statusCode = httpResponse.getStatusLine().getStatusCode();
+        String body = "";
+        HttpEntity entity = httpResponse.getEntity();
+        if (entity != null) {
+            InputStream content = entity.getContent();
+            body = CharStreams.toString(new InputStreamReader(content));
+        }
+        return new Response(statusCode, body, mapHeaders(httpResponse));
     }
 
     private Multimap<String, String> mapHeaders(HttpResponse response) {
@@ -289,6 +294,21 @@ public class HttpTemplate {
             return statusCode;
         } finally {
             httpPost.reset();
+        }
+    }
+
+    public Response delete(URI uri){
+        HttpDelete delete = new HttpDelete(uri);
+        try{
+            try {
+                HttpResponse response = client.execute(delete);
+                return convertHttpResponse(response);
+            } catch (IOException e) {
+                throw new UncheckedIOException("Error issuing DELETE against " + uri, e);
+            }
+        }
+        finally {
+            delete.reset();
         }
 
     }
