@@ -11,12 +11,12 @@ public class StreamsTest {
 
     @Test
     public void testTimes() throws Exception {
-        AtomicInteger resultCt = new AtomicInteger(0);
+        AtomicInteger resultCount = new AtomicInteger(0);
     	Streams.times(100).forEach(x -> {
             assertNull(x);
-            resultCt.incrementAndGet();
+            resultCount.incrementAndGet();
         });
-        assertEquals(100, resultCt.get());
+        assertEquals(100, resultCount.get());
     }
 
 }
