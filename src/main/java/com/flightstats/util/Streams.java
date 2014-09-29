@@ -1,5 +1,6 @@
 package com.flightstats.util;
 
+import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
 public class Streams {
@@ -16,7 +17,7 @@ public class Streams {
      */
     @SuppressWarnings("RedundantCast")
     public static Stream<Void> times(int number) {
-        return Stream.generate(() -> (Void) null).limit(number);
+        return IntStream.range(0, number).mapToObj(i -> (Void) null);
     }
 
 
