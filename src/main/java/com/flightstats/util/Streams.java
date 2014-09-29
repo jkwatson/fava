@@ -1,5 +1,6 @@
 package com.flightstats.util;
 
+import java.util.Arrays;
 import java.util.stream.Stream;
 
 public class Streams {
@@ -14,10 +15,8 @@ public class Streams {
      *     times(1000).parallel().forEach(x -> doSomethingComputationallyExpensive());
      * </code>
      */
-    @SuppressWarnings("RedundantCast")
     public static Stream<Void> times(int number) {
-        return Stream.generate(() -> (Void) null).limit(number);
+        return Arrays.stream(new Void[number]);
     }
-
 
 }

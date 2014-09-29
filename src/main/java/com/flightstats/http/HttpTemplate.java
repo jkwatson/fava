@@ -170,7 +170,8 @@ public class HttpTemplate {
     }
 
     private Response executePost(String fullUri, String contentType, HttpEntity entity) throws Exception {
-        return executePost(fullUri, x -> {}, contentType, entity);
+        return executePost(fullUri, x -> {
+        }, contentType, entity);
     }
 
     private Response executePost(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) throws Exception {
@@ -184,7 +185,8 @@ public class HttpTemplate {
     }
 
     private Response execute(HttpEntityEnclosingRequestBase httpRequest, String contentType, HttpEntity entity) throws IOException {
-        return execute(httpRequest, x -> {}, contentType, entity);
+        return execute(httpRequest, x -> {
+        }, contentType, entity);
     }
 
     private Response execute(HttpEntityEnclosingRequestBase httpRequest, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) throws IOException {
@@ -297,17 +299,16 @@ public class HttpTemplate {
         }
     }
 
-    public Response delete(URI uri){
+    public Response delete(URI uri) {
         HttpDelete delete = new HttpDelete(uri);
-        try{
+        try {
             try {
                 HttpResponse response = client.execute(delete);
                 return convertHttpResponse(response);
             } catch (IOException e) {
                 throw new UncheckedIOException("Error issuing DELETE against " + uri, e);
             }
-        }
-        finally {
+        } finally {
             delete.reset();
         }
 
