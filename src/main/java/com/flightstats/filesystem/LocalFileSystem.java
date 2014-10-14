@@ -62,7 +62,7 @@ public class LocalFileSystem implements FileSystem {
                     return Files.find(d, 100, (path, basicFileAttributes) -> basicFileAttributes.isRegularFile());
                 } catch (IOException e) {
                     logger.warn("Error listing directory: " + directory, e);
-                    return Collections.<Path>emptyList().stream();
+                    return Stream.empty();
                 }
             });
             return files.collect(toList());
