@@ -3,18 +3,20 @@ package com.flightstats.filesystem;
 import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
 import lombok.SneakyThrows;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.io.FileInputStream;
-import java.io.FileOutputStream;
-import java.io.InputStream;
-import java.io.OutputStream;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.Collections;
 import java.util.List;
+import java.util.stream.Stream;
 
 import static java.util.stream.Collectors.toList;
 
 public class LocalFileSystem implements FileSystem {
+    private final static Logger logger = LoggerFactory.getLogger(LocalFileSystem.class);
 
     @Override
     @SneakyThrows
@@ -48,9 +50,26 @@ public class LocalFileSystem implements FileSystem {
     }
 
     @Override
-    @SneakyThrows
     public List<Path> listFiles(Path directory) {
-        return Files.list(directory).collect(toList());
+        //all this stuff is to make this method work like S3 does when you give it a prefix to search for.
+        Path parent = directory.getParent();
+        String prefix = directory.getFileName().toString();
+
+        try {
+            Stream<Path> directories = Files.find(parent, 1, (path, attributes) -> path.getFileName().toString().startsWith(prefix));
+            Stream<Path> files = directories.flatMap(d -> {
+                try {
+                    return Files.find(d, 100, (path, basicFileAttributes) -> basicFileAttributes.isRegularFile());
+                } catch (IOException e) {
+                    logger.warn("Error listing directory: " + directory, e);
+                    return Collections.<Path>emptyList().stream();
+                }
+            });
+            return files.collect(toList());
+        } catch (IOException e) {
+            logger.warn("Error listing directory: " + directory, e);
+            return Collections.emptyList();
+        }
     }
 
     @Override
@@ -62,4 +81,5 @@ public class LocalFileSystem implements FileSystem {
     private String makeFileName(Path file) {
         return Joiner.on("/").join(file.iterator());
     }
+
 }
