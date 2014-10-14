@@ -50,10 +50,10 @@ public class LocalFileSystem implements FileSystem {
     }
 
     @Override
-    public List<Path> listFiles(Path directory) {
+    public List<Path> listFiles(Path prefixPath) {
         //all this stuff is to make this method work like S3 does when you give it a prefix to search for.
-        Path parent = directory.getParent();
-        String prefix = directory.getFileName().toString();
+        Path parent = prefixPath.getParent();
+        String prefix = prefixPath.getFileName().toString();
 
         try {
             Stream<Path> directories = Files.find(parent, 1, (path, attributes) -> path.getFileName().toString().startsWith(prefix));
@@ -61,13 +61,13 @@ public class LocalFileSystem implements FileSystem {
                 try {
                     return Files.find(d, 100, (path, basicFileAttributes) -> basicFileAttributes.isRegularFile());
                 } catch (IOException e) {
-                    logger.warn("Error listing directory: " + directory, e);
+                    logger.warn("Error listing directory: " + prefixPath, e);
                     return Stream.empty();
                 }
             });
             return files.collect(toList());
         } catch (IOException e) {
-            logger.warn("Error listing directory: " + directory, e);
+            logger.warn("Error listing directory: " + prefixPath, e);
             return Collections.emptyList();
         }
     }
