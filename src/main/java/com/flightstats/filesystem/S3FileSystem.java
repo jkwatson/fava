@@ -4,7 +4,6 @@ import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.util.IOUtils;
 import com.google.common.base.Joiner;
-import com.google.common.collect.Lists;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -16,6 +15,8 @@ import java.nio.file.Paths;
 import java.nio.file.StandardCopyOption;
 import java.util.ArrayList;
 import java.util.List;
+
+import static com.google.common.collect.Lists.transform;
 
 public class S3FileSystem implements FileSystem {
     private final static Logger logger = LoggerFactory.getLogger(S3FileSystem.class);
@@ -62,17 +63,21 @@ public class S3FileSystem implements FileSystem {
     @Override
     @SneakyThrows
     public void saveContent(String content, Path fileName) {
-        try(BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream(fileName)))) {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream(fileName)))) {
             writer.write(content);
         }
     }
 
     @Override
-    public List<Path> listFiles(Path directory) {
-        String prefix = makeFileName(directory);
+    public List<Path> listFiles(Path prefixPath) {
+        String prefix = makeFileName(prefixPath);
         ObjectListing objectListing = s3.listObjects(bucketName, prefix);
         List<S3ObjectSummary> summaries = objectListing.getObjectSummaries();
-        return Lists.transform(summaries, objectSummary -> Paths.get(objectSummary.getKey()));
+        //todo: figure out how best to get the rest of them if it's truncated.
+//        if (objectListing.isTruncated()) {
+//             objectListing = s3.listNextBatchOfObjects(objectListing);
+//        }
+        return transform(summaries, objectSummary -> Paths.get(objectSummary.getKey()));
     }
 
     @Override
