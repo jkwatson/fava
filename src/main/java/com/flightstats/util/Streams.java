@@ -8,11 +8,11 @@ public class Streams {
     /**
      * Generates a Stream of nulls, with as many entries as you specify. Useful for doing parallel "loops" like this:
      * <code>
-     *     times(1000).parallel().map(x -> generateSomethingComputationallyExpensive());
+     *     times(1000).parallel().map(x -&gt; generateSomethingComputationallyExpensive());
      * </code>
      * or:
      * <code>
-     *     times(1000).parallel().forEach(x -> doSomethingComputationallyExpensive());
+     *     times(1000).parallel().forEach(x -&gt; doSomethingComputationallyExpensive());
      * </code>
      */
     @SuppressWarnings("RedundantCast")
