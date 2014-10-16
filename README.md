@@ -23,11 +23,11 @@ Available via maven central:
         <dependency>
             <groupId>com.flightstats</groupId>
             <artifactId>fava</artifactId>
-            <version>0.1.2</version>
+            <version>0.1.3</version>
         </dependency>
 ```
 
 Or with gradle:
 ```
-        'com.flightstats:fava:0.1.2'
+        'com.flightstats:fava:0.1.3'
 ```
