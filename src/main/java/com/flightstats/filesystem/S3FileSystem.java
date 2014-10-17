@@ -1,6 +1,7 @@
 package com.flightstats.filesystem;
 
 import com.amazonaws.services.s3.AmazonS3;
+import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.util.IOUtils;
 import com.google.common.base.Joiner;
@@ -133,7 +134,7 @@ public class S3FileSystem implements FileSystem {
             if (initiateMultipartUploadResult == null) {
                 initiateMultipartUploadResult = s3.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName, fileName));
             }
-            if (bytes.size() == 0) {
+            if (bytes.size() == 0 && partNumber > 0) {
 //                logger.info("skipping flushing...zero bytes remaining");
                 return;
             }
@@ -163,5 +164,11 @@ public class S3FileSystem implements FileSystem {
             }
             s3.completeMultipartUpload(new CompleteMultipartUploadRequest(bucketName, fileName, initiateMultipartUploadResult.getUploadId(), eTags));
         }
+    }
+
+
+    public static void main(String[] args) {
+        S3FileSystem fs = new S3FileSystem(new AmazonS3Client(), "analytics-dev-useast1-dwload");
+        fs.saveContent("", Paths.get("jkw-dev-test", "testfile.txt"));
     }
 }
