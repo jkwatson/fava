@@ -133,7 +133,7 @@ public class S3FileSystem implements FileSystem {
             if (initiateMultipartUploadResult == null) {
                 initiateMultipartUploadResult = s3.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName, fileName));
             }
-            if (bytes.size() == 0) {
+            if (bytes.size() == 0 && partNumber > 0) {
 //                logger.info("skipping flushing...zero bytes remaining");
                 return;
             }
