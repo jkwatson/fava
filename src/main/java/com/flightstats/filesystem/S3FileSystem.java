@@ -71,12 +71,17 @@ public class S3FileSystem implements FileSystem {
     @Override
     public List<Path> listFiles(Path prefixPath) {
         String prefix = makeFileName(prefixPath);
-        ObjectListing objectListing = s3.listObjects(bucketName, prefix);
-        List<S3ObjectSummary> summaries = objectListing.getObjectSummaries();
-        //todo: figure out how best to get the rest of them if it's truncated.
-//        if (objectListing.isTruncated()) {
-//             objectListing = s3.listNextBatchOfObjects(objectListing);
-//        }
+        ObjectListing objectListing;
+        List<S3ObjectSummary> summaries = new ArrayList<>();
+        objectListing = s3.listObjects(bucketName, prefix);
+        while (true) {
+            summaries.addAll(objectListing.getObjectSummaries());
+            if (objectListing.isTruncated()) {
+                objectListing = s3.listNextBatchOfObjects(objectListing);
+            } else {
+                break;
+            }
+        }
         return transform(summaries, objectSummary -> Paths.get(objectSummary.getKey()));
     }
 
