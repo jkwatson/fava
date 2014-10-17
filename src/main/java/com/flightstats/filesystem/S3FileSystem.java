@@ -1,7 +1,6 @@
 package com.flightstats.filesystem;
 
 import com.amazonaws.services.s3.AmazonS3;
-import com.amazonaws.services.s3.AmazonS3Client;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.util.IOUtils;
 import com.google.common.base.Joiner;
@@ -164,11 +163,5 @@ public class S3FileSystem implements FileSystem {
             }
             s3.completeMultipartUpload(new CompleteMultipartUploadRequest(bucketName, fileName, initiateMultipartUploadResult.getUploadId(), eTags));
         }
-    }
-
-
-    public static void main(String[] args) {
-        S3FileSystem fs = new S3FileSystem(new AmazonS3Client(), "analytics-dev-useast1-dwload");
-        fs.saveContent("", Paths.get("jkw-dev-test", "testfile.txt"));
     }
 }
