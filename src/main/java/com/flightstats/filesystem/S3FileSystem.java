@@ -71,16 +71,12 @@ public class S3FileSystem implements FileSystem {
     @Override
     public List<Path> listFiles(Path prefixPath) {
         String prefix = makeFileName(prefixPath);
-        ObjectListing objectListing;
         List<S3ObjectSummary> summaries = new ArrayList<>();
-        objectListing = s3.listObjects(bucketName, prefix);
-        while (true) {
+        ObjectListing objectListing = s3.listObjects(bucketName, prefix);
+        summaries.addAll(objectListing.getObjectSummaries());
+        while (objectListing.isTruncated()) {
+            objectListing = s3.listNextBatchOfObjects(objectListing);
             summaries.addAll(objectListing.getObjectSummaries());
-            if (objectListing.isTruncated()) {
-                objectListing = s3.listNextBatchOfObjects(objectListing);
-            } else {
-                break;
-            }
         }
         return transform(summaries, objectSummary -> Paths.get(objectSummary.getKey()));
     }
