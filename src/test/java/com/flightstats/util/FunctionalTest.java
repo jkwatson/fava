@@ -11,12 +11,12 @@ import java.util.stream.Stream;
 
 import static org.junit.Assert.*;
 
-public class StreamsTest {
+public class FunctionalTest {
 
     @Test
     public void testTimes() throws Exception {
         AtomicInteger resultCount = new AtomicInteger(0);
-        Streams.times(100).forEach(x -> {
+        Functional.times(100).forEach(x -> {
             assertNull(x);
             resultCount.incrementAndGet();
         });
@@ -30,7 +30,7 @@ public class StreamsTest {
             Random random = new Random();
             AtomicInteger resultCount = new AtomicInteger(0);
             List<Integer> counter = Collections.synchronizedList(new ArrayList<>());
-            Streams.times(100).parallel().forEach(x -> {
+            Functional.times(100).parallel().forEach(x -> {
                 try {
                     Thread.sleep(random.nextInt(10));
                     assertNull(x);
@@ -54,7 +54,7 @@ public class StreamsTest {
     @Test
     public void testMemory() throws Exception {
         //just verifying that this doesn't blow the heap to do the largest one possible.
-        Stream<Void> times = Streams.times(Integer.MAX_VALUE);
+        Stream<Void> times = Functional.times(Integer.MAX_VALUE);
         assertEquals(Integer.MAX_VALUE, times.count());
     }
 
