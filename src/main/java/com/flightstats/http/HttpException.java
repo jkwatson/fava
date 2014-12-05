@@ -4,8 +4,6 @@ import lombok.EqualsAndHashCode;
 import lombok.Value;
 import lombok.experimental.Delegate;
 
-import java.net.HttpURLConnection;
-
 import static java.net.HttpURLConnection.*;
 
 @Value
@@ -45,7 +43,11 @@ public class HttpException extends RuntimeException {
     }
 
     public static HttpException forbidden(String message) {
-        return new HttpException(new Details(HttpURLConnection.HTTP_FORBIDDEN, message));
+        return new HttpException(new Details(HTTP_FORBIDDEN, message));
+    }
+
+    public static HttpException preconditionFailed(String message) {
+        return new HttpException(new Details(HTTP_PRECON_FAILED, message));
     }
 
     @Value
