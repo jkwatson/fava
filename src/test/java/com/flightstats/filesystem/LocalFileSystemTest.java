@@ -1,6 +1,7 @@
 package com.flightstats.filesystem;
 
 import com.google.common.base.Joiner;
+import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
 import java.nio.file.Files;
 import org.junit.Test;
@@ -27,22 +28,20 @@ public class LocalFileSystemTest {
                     new FileWriter(dir.resolve(String.valueOf(x)).toFile()).append("").close();
                 }
             }
-            final List<Path> paths = new LocalFileSystem().listFiles(Paths.get("/tmp/t/9/9/"));
-            assertEquals(11, paths.size());
-            assertEquals(
-                    "/tmp/t/9/1/9\n" +
-                    "/tmp/t/9/10/9\n" +
-                    "/tmp/t/9/2/9\n" +
-                    "/tmp/t/9/3/9\n" +
-                    "/tmp/t/9/4/9\n" +
-                    "/tmp/t/9/5/9\n" +
-                    "/tmp/t/9/6/9\n" +
-                    "/tmp/t/9/7/9\n" +
-                    "/tmp/t/9/8/9\n" +
-                    "/tmp/t/9/9/9\n" +
-                    "/tmp/t/9/9/9",
+            final List<Path> paths = new LocalFileSystem().listFiles(tempdir.resolve("8/8/"));
+            assertEquals(9, paths.size());
+            final List<Path> relativePaths = Lists.transform(paths, tempdir::relativize);
+            assertEquals("8/1/8\n" +
+                        "8/2/8\n" +
+                        "8/3/8\n" +
+                        "8/4/8\n" +
+                        "8/5/8\n" +
+                        "8/6/8\n" +
+                        "8/7/8\n" +
+                        "8/8/8\n" +
+                        "8/8/8",
 
-                    Joiner.on("\n").join(Ordering.natural().sortedCopy(paths)));
+                    Joiner.on("\n").join(Ordering.natural().sortedCopy(relativePaths)));
         } finally {
             for (int x = 1; x < 9; x++) {
                 for (int y=1; y < 9; y++) {
