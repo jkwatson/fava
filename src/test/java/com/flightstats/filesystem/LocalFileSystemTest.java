@@ -3,16 +3,12 @@ package com.flightstats.filesystem;
 import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.google.common.collect.Ordering;
-import java.nio.file.Files;
 import org.junit.Test;
 
-import java.io.File;
 import java.io.FileWriter;
+import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 import java.util.List;
-import java.util.function.BiPredicate;
-import java.util.stream.Stream;
 
 import static junit.framework.Assert.assertEquals;
 
@@ -53,12 +49,6 @@ public class LocalFileSystemTest {
             }
 
             tempdir.toFile().delete();
-//            for (int x = 1; x < 9; x++) {
-//                for (int y=1; y < 9; y++) {
-//
-//                }
-//            }
-//            tempdir.delete();
         }
     }
 }
