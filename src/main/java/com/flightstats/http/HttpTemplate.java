@@ -31,6 +31,7 @@ import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ExecutionException;
@@ -61,10 +62,10 @@ public class HttpTemplate {
         this.acceptType = APPLICATION_JSON;
     }
 
-    public <T> T get(String hostUrl, String path, Function<String, T> responseCreator, NameValuePair... params) {
+    public <T> T get(String hostUrl, String path, Function<String, T> responseCreator, NameValuePair... queryParams) {
         URI uri;
         try {
-            uri = new URIBuilder(hostUrl).setPath(path).setParameters(params).build();
+            uri = new URIBuilder(hostUrl).setPath(path).setParameters(queryParams).build();
         } catch (URISyntaxException e) {
             throw Throwables.propagate(e);
         }
@@ -96,7 +97,12 @@ public class HttpTemplate {
     }
 
     public Response get(URI uri, Consumer<Response> responseConsumer) {
+        return get(uri, responseConsumer, Collections.emptyMap());
+    }
+
+    public Response get(URI uri, Consumer<Response> responseConsumer, Map<String,String> extraHeaders) {
         HttpGet request = new HttpGet(uri);
+        extraHeaders.entrySet().stream().forEach(entry -> request.setHeader(entry.getKey(), entry.getValue()));
         return handleRequest(request, responseConsumer);
     }
 

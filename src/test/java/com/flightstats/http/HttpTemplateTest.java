@@ -9,10 +9,7 @@ import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.gson.Gson;
 import com.google.gson.GsonBuilder;
-import org.apache.http.Header;
-import org.apache.http.HttpEntity;
-import org.apache.http.HttpResponse;
-import org.apache.http.StatusLine;
+import org.apache.http.*;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
@@ -22,7 +19,10 @@ import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
 import java.net.URI;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
@@ -163,7 +163,7 @@ public class HttpTemplateTest {
 
     @Test
     public void testDelete() throws Exception {
-    	//GIVEN
+        //GIVEN
         String body = "any old body";
         Multimap<String, String> expectedHeaders = LinkedListMultimap.create();
         expectedHeaders.put("foo", "bar");
@@ -188,5 +188,40 @@ public class HttpTemplateTest {
 
         //THEN
         assertEquals(new Response(200, body, expectedHeaders), result);
+    }
+
+    @Test
+    public void testGetWithExtraHeaders() throws Exception {
+        //GIVEN
+        String body = "result body text";
+        Response expected = new Response(200, body, LinkedListMultimap.create());
+
+        HttpResponse response = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
+        HttpClient httpClient = mock(HttpClient.class);
+        StatusLine statusLine = mock(StatusLine.class);
+
+        AtomicReference<HttpRequest> seenRequest = new AtomicReference<>();
+        when(httpClient.execute(isA(HttpGet.class))).thenAnswer(invocation -> {
+            HttpRequest httpRequest = (HttpRequest) invocation.getArguments()[0];
+            seenRequest.set(httpRequest);
+            return response;
+        });
+        when(response.getAllHeaders()).thenReturn(new Header[0]);
+        when(response.getStatusLine()).thenReturn(statusLine);
+        when(response.getEntity().getContent()).thenReturn(new ByteArrayInputStream(body.getBytes()));
+        when(statusLine.getStatusCode()).thenReturn(200);
+
+        HttpTemplate testClass = new HttpTemplate(httpClient, null, null);
+
+        //WHEN
+        URI uri = URI.create("http://service.com/ftw");
+        Map<String, String> headers = new HashMap<>();
+        headers.put("foo", "bar");
+        Response result = testClass.get(uri, x -> {
+        }, headers);
+
+        //THEN
+        assertEquals(expected, result);
+        assertEquals("bar", seenRequest.get().getFirstHeader("foo").getValue());
     }
 }
