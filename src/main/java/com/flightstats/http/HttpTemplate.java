@@ -7,7 +7,7 @@ import com.google.common.base.Throwables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
-import com.google.common.io.CharStreams;
+import com.google.common.io.ByteStreams;
 import com.google.gson.Gson;
 import lombok.AllArgsConstructor;
 import org.apache.http.*;
@@ -25,7 +25,6 @@ import org.slf4j.LoggerFactory;
 import javax.inject.Inject;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
 import java.net.URI;
@@ -82,7 +81,7 @@ public class HttpTemplate {
             if (isFailedStatusCode(response.getCode())) {
                 throw new HttpException(new Details(response.getCode(), "Post failed to: " + uri + ". response: " + response));
             }
-            result.set(responseCreator.apply(response.getBody()));
+            result.set(responseCreator.apply(response.getBodyString()));
         });
         return result.get();
     }
@@ -150,11 +149,11 @@ public class HttpTemplate {
 
     private Response convertHttpResponse(HttpResponse httpResponse) throws IOException {
         int statusCode = httpResponse.getStatusLine().getStatusCode();
-        String body = "";
+        byte[] body = new byte[0];
         HttpEntity entity = httpResponse.getEntity();
         if (entity != null) {
             InputStream content = entity.getContent();
-            body = CharStreams.toString(new InputStreamReader(content));
+            body = ByteStreams.toByteArray(content);
         }
         return new Response(statusCode, body, mapHeaders(httpResponse));
     }
@@ -202,10 +201,10 @@ public class HttpTemplate {
             httpRequest.setEntity(entity);
             HttpResponse httpResponse = client.execute(httpRequest);
             int statusCode = httpResponse.getStatusLine().getStatusCode();
-            String body = CharStreams.toString(new InputStreamReader(httpResponse.getEntity().getContent()));
+            byte[] body = ByteStreams.toByteArray(httpResponse.getEntity().getContent());
             if (isRetryableStatusCode(statusCode)) {
                 logger.error("Internal server error, status code " + statusCode);
-                throw new HttpException(new Details(statusCode, httpRequest.getMethod() + " failed to: " + httpRequest.getURI() + ".  Status = " + statusCode + ", message = " + body));
+                throw new HttpException(new Details(statusCode, httpRequest.getMethod() + " failed to: " + httpRequest.getURI() + ".  Status = " + statusCode + ", message = " + new String(body)));
             }
             Response response = new Response(statusCode, body, mapHeaders(httpResponse));
             responseConsumer.accept(response);
@@ -258,7 +257,7 @@ public class HttpTemplate {
 
     public <T> T post(String fullUri, Object bodyToPost, Function<String, T> responseConverter) {
         AtomicReference<T> result = new AtomicReference<>();
-        postWithResponse(fullUri, bodyToPost, (Response response) -> result.set(responseConverter.apply(response.getBody())));
+        postWithResponse(fullUri, bodyToPost, (Response response) -> result.set(responseConverter.apply(response.getBodyString())));
         return result.get();
     }
 
