@@ -23,10 +23,16 @@ public class Response {
         return headers.get(location);
     }
 
+    /**
+     * @return The response body as a String by using the platform's default character set.
+     */
     public String getBodyString() {
         return getBodyString(Charset.defaultCharset());
     }
 
+    /**
+     * @return The response body as a String by using the specified character encoding.
+     */
     public String getBodyString(Charset charset) {
         return new String(body, charset);
     }
