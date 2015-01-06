@@ -136,6 +136,7 @@ public class HttpTemplate {
     }
 
     private Response handleRequest(HttpRequestBase request, Consumer<Response> responseConsumer) {
+        request.setHeader("Accept", acceptType);
         try {
             HttpResponse httpResponse = client.execute(request);
             Response response = convertHttpResponse(httpResponse);
