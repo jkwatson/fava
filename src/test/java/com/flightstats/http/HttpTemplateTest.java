@@ -230,7 +230,7 @@ public class HttpTemplateTest {
     @Test
     public void testPostWithExtraHeaders() throws Exception {
         //GIVEN
-        Response expected = new Response(200, "body response", ArrayListMultimap.create());
+        Response expected = new Response(200, "body response".getBytes(), ArrayListMultimap.create());
         URI uri = URI.create("http://the-post-target.com");
         Map<String, String> extraHeaders = new HashMap<>();
         extraHeaders.put("SOMETHING", "I'm extra");
@@ -244,7 +244,7 @@ public class HttpTemplateTest {
             return httpResponse;
         });
         when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpURLConnection.HTTP_OK);
-        when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody().getBytes()));
+        when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody()));
         when(httpResponse.getAllHeaders()).thenReturn(new Header[0]);
 
         HttpTemplate testClass = new HttpTemplate(client, null, null);
