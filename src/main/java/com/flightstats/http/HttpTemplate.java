@@ -30,10 +30,7 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -102,8 +99,12 @@ public class HttpTemplate {
 
     public Response get(URI uri, Consumer<Response> responseConsumer, Map<String,String> extraHeaders) {
         HttpGet request = new HttpGet(uri);
-        extraHeaders.entrySet().stream().forEach(entry -> request.setHeader(entry.getKey(), entry.getValue()));
+        addExtraHeaders(request, extraHeaders);
         return handleRequest(request, responseConsumer);
+    }
+
+    private void addExtraHeaders(HttpRequestBase request, Map<String, String> extraHeaders) {
+        extraHeaders.entrySet().stream().forEach(entry -> request.setHeader(entry.getKey(), entry.getValue()));
     }
 
     public Response head(URI uri) {
@@ -176,12 +177,21 @@ public class HttpTemplate {
     }
 
     private Response executePost(String fullUri, String contentType, HttpEntity entity) throws Exception {
+        return executePost(fullUri, contentType, entity, Collections.emptyMap());
+    }
+
+    private Response executePost(String fullUri, String contentType, HttpEntity entity, Map<String, String> extraHeaders) throws Exception {
         return executePost(fullUri, x -> {
-        }, contentType, entity);
+        }, contentType, entity, extraHeaders);
     }
 
     private Response executePost(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) throws Exception {
+        return executePost(fullUri, responseConsumer, contentType, entity, Collections.emptyMap());
+    }
+
+    private Response executePost(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity, Map<String, String> extraHeaders) throws Exception {
         HttpPost httpPost = new HttpPost(fullUri);
+        addExtraHeaders(httpPost, extraHeaders);
         return execute(httpPost, responseConsumer, contentType, entity);
     }
 
@@ -234,8 +244,18 @@ public class HttpTemplate {
     }
 
     public Response post(URI uri, byte[] bytes, String contentType) {
+        return post(uri, bytes, contentType, new HashMap<>());
+    }
+
+    public Response post(URI uri, byte[] bytes, String contentType, Map<String, String> extraHeaders) {
+        HashMap<String, String> headers = new HashMap<>(extraHeaders);
+        headers.put("Content-type", contentType);
+        return post(uri, bytes, headers);
+    }
+
+    public Response post(URI uri, byte[] bytes, Map<String, String> extraHeaders) {
         try {
-            return executePost(uri.toString(), contentType, new ByteArrayEntity(bytes));
+            return executePost(uri.toString(), contentType, new ByteArrayEntity(bytes), extraHeaders);
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }

@@ -5,6 +5,7 @@ import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
 import com.github.rholder.retry.WaitStrategies;
+import com.google.common.collect.ArrayListMultimap;
 import com.google.common.collect.LinkedListMultimap;
 import com.google.common.collect.Multimap;
 import com.google.gson.Gson;
@@ -18,6 +19,7 @@ import org.apache.http.message.BasicHeader;
 import org.junit.Test;
 
 import java.io.ByteArrayInputStream;
+import java.net.HttpURLConnection;
 import java.net.URI;
 import java.util.HashMap;
 import java.util.Map;
@@ -223,5 +225,35 @@ public class HttpTemplateTest {
         //THEN
         assertEquals(expected, result);
         assertEquals("bar", seenRequest.get().getFirstHeader("foo").getValue());
+    }
+
+    @Test
+    public void testPostWithExtraHeaders() throws Exception {
+        //GIVEN
+        Response expected = new Response(200, "body response", ArrayListMultimap.create());
+        URI uri = URI.create("http://the-post-target.com");
+        Map<String, String> extraHeaders = new HashMap<>();
+        extraHeaders.put("SOMETHING", "I'm extra");
+
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse httpResponse = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
+
+        AtomicReference<HttpPost> seenPost = new AtomicReference<>();
+        when(client.execute(any(HttpPost.class))).thenAnswer(invocation -> {
+            seenPost.set((HttpPost) invocation.getArguments()[0]);
+            return httpResponse;
+        });
+        when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody().getBytes()));
+        when(httpResponse.getAllHeaders()).thenReturn(new Header[0]);
+
+        HttpTemplate testClass = new HttpTemplate(client, null, null);
+
+        //WHEN
+        Response result = testClass.post(uri, "body message".getBytes(), "text/plain", extraHeaders);
+
+        //THEN
+        assertEquals(expected, result);
+        assertEquals("I'm extra", seenPost.get().getFirstHeader("SOMETHING").getValue());
     }
 }
