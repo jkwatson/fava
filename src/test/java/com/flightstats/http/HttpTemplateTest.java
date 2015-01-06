@@ -189,14 +189,14 @@ public class HttpTemplateTest {
         Response result = testClass.delete(URI.create("http://lmgtfy.com"));
 
         //THEN
-        assertEquals(new Response(200, body, expectedHeaders), result);
+        assertEquals(new Response(200, body.getBytes(), expectedHeaders), result);
     }
 
     @Test
     public void testGetWithExtraHeaders() throws Exception {
         //GIVEN
         String body = "result body text";
-        Response expected = new Response(200, body, LinkedListMultimap.create());
+        Response expected = new Response(200, body.getBytes(), LinkedListMultimap.create());
 
         HttpResponse response = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
         HttpClient httpClient = mock(HttpClient.class);

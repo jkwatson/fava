@@ -5,12 +5,13 @@ import com.google.common.collect.Iterables;
 import com.google.common.collect.Multimap;
 import lombok.Value;
 
+import java.nio.charset.Charset;
 import java.util.Collection;
 
 @Value
 public class Response {
     int code;
-    String body;
+    byte[] body;
     Multimap<String, String> headers;
 
     public String getHeader(String location) {
@@ -20,5 +21,19 @@ public class Response {
 
     public Collection<String> getHeaders(String location) {
         return headers.get(location);
+    }
+
+    /**
+     * @return The response body as a String by using the platform's default character set.
+     */
+    public String getBodyString() {
+        return getBodyString(Charset.defaultCharset());
+    }
+
+    /**
+     * @return The response body as a String by using the specified character encoding.
+     */
+    public String getBodyString(Charset charset) {
+        return new String(body, charset);
     }
 }
