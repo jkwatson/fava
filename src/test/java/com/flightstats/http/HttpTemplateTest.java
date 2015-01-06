@@ -225,6 +225,7 @@ public class HttpTemplateTest {
         //THEN
         assertEquals(expected, result);
         assertEquals("bar", seenRequest.get().getFirstHeader("foo").getValue());
+        assertEquals("application/json", seenRequest.get().getFirstHeader("Accept").getValue());
     }
 
     @Test
