@@ -102,6 +102,10 @@ public class HttpTemplate {
         return handleRequest(request, responseConsumer);
     }
 
+    public Response get(URI uri, Map<String, String> extraHeaders) {
+        return get(uri, res -> {}, extraHeaders);
+    }
+
     private void addExtraHeaders(HttpRequestBase request, Map<String, String> extraHeaders) {
         extraHeaders.entrySet().stream().forEach(entry -> request.setHeader(entry.getKey(), entry.getValue()));
     }
