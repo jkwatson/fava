@@ -33,6 +33,12 @@ import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unchecked")
 public class HttpTemplateTest {
+    @Test(expected = IllegalStateException.class)
+    public void testGsonRequiresCorrectContentType() throws Exception {
+        final HttpTemplate httpTemplate = new HttpTemplate(mock(HttpClient.class), null, "*/*", "*/*");
+        httpTemplate.get(URI.create("foo"), String.class);
+    }
+
 
     @Test
     public void testPostWithResponse_successOnSingleAttempt() throws Exception {
