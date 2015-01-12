@@ -15,6 +15,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHeader;
 import org.junit.Test;
 
@@ -37,6 +38,34 @@ public class HttpTemplateTest {
     public void testGsonRequiresCorrectContentType() throws Exception {
         final HttpTemplate httpTemplate = new HttpTemplate(mock(HttpClient.class), null, "*/*", "*/*");
         httpTemplate.get(URI.create("foo"), String.class);
+    }
+
+    @Test
+    public void testNonDefaultPostContentTypeHeader() throws Exception {
+        // given
+        HttpClient httpClient = mock(HttpClient.class);
+        HttpResponse httpResponse = mock(HttpResponse.class);
+        StatusLine statusLine = mock(StatusLine.class);
+        HttpEntity entity = new StringEntity("bar", "UTF-8");
+
+        when(httpResponse.getStatusLine()).thenReturn(statusLine);
+        when(httpResponse.getEntity()).thenReturn(entity);
+        when(httpResponse.getAllHeaders()).thenReturn(new Header[] { new BasicHeader("Content-Type", "text/plain") });
+
+        AtomicReference<HttpPost> post = new AtomicReference<>();
+
+        when(httpClient.execute(any(HttpPost.class)))
+                .thenAnswer( (a) -> {
+                    post.set((HttpPost) a.getArguments()[0]);
+                    return httpResponse;
+                });
+
+        final HttpTemplate httpTemplate = new HttpTemplate(httpClient, null, "application/json", "application/json");
+        httpTemplate.post(URI.create("foo"), "foo".getBytes(), "*/*");
+
+        final Header[] contentType = post.get().getHeaders("Content-Type");
+        assertEquals(1, contentType.length);
+        assertEquals("Content-Type: */*", contentType[0].toString());
     }
 
 
