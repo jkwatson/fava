@@ -44,14 +44,14 @@ public class HttpTemplate {
     private final HttpClient client;
     private final Optional<Gson> gson;
     private final Retryer<Response> retryer;
-    private final String contentType;
+    private final String defaultContentType;
     private final String acceptType;
 
     public HttpTemplate(HttpClient client, Retryer<Response> retryer, String contentType, String acceptType) {
         this.client = client;
         this.gson = Optional.empty();
         this.retryer = retryer;
-        this.contentType = contentType;
+        this.defaultContentType = contentType;
         this.acceptType = acceptType;
     }
 
@@ -60,7 +60,7 @@ public class HttpTemplate {
         this.client = client;
         this.gson = Optional.ofNullable(gson);
         this.retryer = retryer;
-        this.contentType = APPLICATION_JSON;
+        this.defaultContentType = APPLICATION_JSON;
         this.acceptType = APPLICATION_JSON;
     }
 
@@ -109,7 +109,10 @@ public class HttpTemplate {
     }
 
     private void addExtraHeaders(HttpRequestBase request, Map<String, String> extraHeaders) {
-        extraHeaders.entrySet().stream().forEach(entry -> request.setHeader(entry.getKey(), entry.getValue()));
+        extraHeaders.entrySet()
+                .stream()
+                .filter(e -> !e.getKey().equalsIgnoreCase("Content-Type"))
+                .forEach(entry -> request.setHeader(entry.getKey(), entry.getValue()));
     }
 
     public Response head(URI uri) {
@@ -178,7 +181,7 @@ public class HttpTemplate {
     public int postWithNoResponseCodeValidation(String fullUri, Object bodyToPost, Consumer<Response> responseConsumer) {
         try {
             String bodyEntity = convertBodyToString(bodyToPost);
-            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, contentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
+            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, defaultContentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
             return response.getCode();
         } catch (ExecutionException | RetryException e) {
             throw Throwables.propagate(e);
@@ -257,13 +260,13 @@ public class HttpTemplate {
 
     public Response post(URI uri, byte[] bytes, String contentType, Map<String, String> extraHeaders) {
         HashMap<String, String> headers = new HashMap<>(extraHeaders);
-        headers.put("Content-type", contentType);
+        headers.put("Content-Type", contentType);
         return post(uri, bytes, headers);
     }
 
     public Response post(URI uri, byte[] bytes, Map<String, String> extraHeaders) {
         try {
-            return executePost(uri.toString(), contentType, new ByteArrayEntity(bytes), extraHeaders);
+            return executePost(uri.toString(), extraHeaders.getOrDefault("Content-Type", defaultContentType), new ByteArrayEntity(bytes), extraHeaders);
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
@@ -305,7 +308,7 @@ public class HttpTemplate {
     public Response postWithResponse(String fullUri, Object bodyToPost, Consumer<Response> responseConsumer) {
         try {
             String bodyEntity = convertBodyToString(bodyToPost);
-            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, contentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
+            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, defaultContentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
             if (isFailedStatusCode(response.getCode())) {
                 throw new HttpException(new Details(response.getCode(), "Post failed to: " + fullUri + ". response: " + response));
             }
