@@ -9,7 +9,6 @@ import com.google.common.collect.Multimap;
 import com.google.common.collect.Multimaps;
 import com.google.common.io.ByteStreams;
 import com.google.gson.Gson;
-import lombok.AllArgsConstructor;
 import org.apache.http.*;
 import org.apache.http.client.HttpClient;
 import org.apache.http.client.config.RequestConfig;
@@ -38,23 +37,30 @@ import java.util.function.Function;
 import static com.flightstats.http.HttpException.Details;
 import static java.util.stream.Collectors.toList;
 
-@AllArgsConstructor
 public class HttpTemplate {
     public static final String APPLICATION_JSON = "application/json";
     public static final Logger logger = LoggerFactory.getLogger(HttpTemplate.class);
 
     private final HttpClient client;
-    private final Gson gson;
+    private final Optional<Gson> gson;
     private final Retryer<Response> retryer;
-    private final String contentType;
+    private final String defaultContentType;
     private final String acceptType;
+
+    public HttpTemplate(HttpClient client, Retryer<Response> retryer, String contentType, String acceptType) {
+        this.client = client;
+        this.gson = Optional.empty();
+        this.retryer = retryer;
+        this.defaultContentType = contentType;
+        this.acceptType = acceptType;
+    }
 
     @Inject
     public HttpTemplate(HttpClient client, Gson gson, Retryer<Response> retryer) {
         this.client = client;
-        this.gson = gson;
+        this.gson = Optional.ofNullable(gson);
         this.retryer = retryer;
-        this.contentType = APPLICATION_JSON;
+        this.defaultContentType = APPLICATION_JSON;
         this.acceptType = APPLICATION_JSON;
     }
 
@@ -107,7 +113,10 @@ public class HttpTemplate {
     }
 
     private void addExtraHeaders(HttpRequestBase request, Map<String, String> extraHeaders) {
-        extraHeaders.entrySet().stream().forEach(entry -> request.setHeader(entry.getKey(), entry.getValue()));
+        extraHeaders.entrySet()
+                .stream()
+                .filter(e -> !e.getKey().equalsIgnoreCase("Content-Type"))
+                .forEach(entry -> request.setHeader(entry.getKey(), entry.getValue()));
     }
 
     public Response head(URI uri) {
@@ -132,7 +141,10 @@ public class HttpTemplate {
     }
 
     public <T> T get(URI uri, Type type) {
-        return get(uri, (String body) -> gson.fromJson(body, type));
+        if (!gson.isPresent()) {
+            throw new IllegalStateException("Must provide gson for deserializion");
+        }
+        return get(uri, (String body) -> gson.get().fromJson(body, type));
     }
 
     public String getSimple(String uri) {
@@ -172,8 +184,8 @@ public class HttpTemplate {
 
     public int postWithNoResponseCodeValidation(String fullUri, Object bodyToPost, Consumer<Response> responseConsumer) {
         try {
-            String bodyEntity = convertBodyToString(bodyToPost, contentType);
-            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, contentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
+            String bodyEntity = convertBodyToString(bodyToPost);
+            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, defaultContentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
             return response.getCode();
         } catch (ExecutionException | RetryException e) {
             throw Throwables.propagate(e);
@@ -238,12 +250,11 @@ public class HttpTemplate {
         return 502 <= responseStatusCode && responseStatusCode <= 504;
     }
 
-    private String convertBodyToString(Object bodyToPost, String contentType) {
-        switch (contentType) {
-            case APPLICATION_JSON:
-                return gson.toJson(bodyToPost);
-            default:
-                return String.valueOf(bodyToPost);
+    private String convertBodyToString(Object bodyToPost) {
+        if (gson.isPresent()) {
+            return gson.get().toJson(bodyToPost);
+        } else {
+            return String.valueOf(bodyToPost);
         }
     }
 
@@ -253,13 +264,13 @@ public class HttpTemplate {
 
     public Response post(URI uri, byte[] bytes, String contentType, Map<String, String> extraHeaders) {
         HashMap<String, String> headers = new HashMap<>(extraHeaders);
-        headers.put("Content-type", contentType);
+        headers.put("Content-Type", contentType);
         return post(uri, bytes, headers);
     }
 
     public Response post(URI uri, byte[] bytes, Map<String, String> extraHeaders) {
         try {
-            return executePost(uri.toString(), contentType, new ByteArrayEntity(bytes), extraHeaders);
+            return executePost(uri.toString(), extraHeaders.getOrDefault("Content-Type", defaultContentType), new ByteArrayEntity(bytes), extraHeaders);
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
@@ -300,8 +311,8 @@ public class HttpTemplate {
      */
     public Response postWithResponse(String fullUri, Object bodyToPost, Consumer<Response> responseConsumer) {
         try {
-            String bodyEntity = convertBodyToString(bodyToPost, contentType);
-            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, contentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
+            String bodyEntity = convertBodyToString(bodyToPost);
+            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, defaultContentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
             if (isFailedStatusCode(response.getCode())) {
                 throw new HttpException(new Details(response.getCode(), "Post failed to: " + fullUri + ". response: " + response));
             }
