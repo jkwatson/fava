@@ -21,21 +21,18 @@ public class ResponseTest {
     }
 
     @Test
-    public void testToString_BodyLimit() {
-        {
-            // at limit
-            String body = Strings.repeat("A", Response.MAX_BODY_LENGTH);
-            Response response = new Response(200, body.getBytes(), null);
-            String expected = "Response{code=200, body=" + body + ", headers=null}";
-            assertEquals(expected, response.toString());
-        }
+    public void testBodyAtLengthLimit() {
+        String body = Strings.repeat("A", Response.MAX_BODY_LENGTH);
+        Response response = new Response(200, body.getBytes(), null);
+        String expected = "Response{code=200, body=" + body + ", headers=null}";
+        assertEquals(expected, response.toString());
+    }
 
-        {
-            // over limit
-            String body = Strings.repeat("A", Response.MAX_BODY_LENGTH + 10);
-            Response response = new Response(200, body.getBytes(), null);
-            String expected = "Response{code=200, body=" + body.substring(0, Response.MAX_BODY_LENGTH) + ", headers=null}";
-            assertEquals(expected, response.toString());
-        }
+    @Test
+    public void testBodyOverLengthLimit() throws Exception {
+        String body = Strings.repeat("A", Response.MAX_BODY_LENGTH + 10);
+        Response response = new Response(200, body.getBytes(), null);
+        String expected = "Response{code=200, body=" + body.substring(0, Response.MAX_BODY_LENGTH) + "...[snip]..." + ", headers=null}";
+        assertEquals(expected, response.toString());
     }
 }

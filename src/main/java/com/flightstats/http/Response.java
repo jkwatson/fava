@@ -41,7 +41,7 @@ public class Response {
 
     @Override
     public String toString() {
-        String bodyString = truncate(getBodyString(), MAX_BODY_LENGTH);
+        String bodyString = truncate(getBodyString());
         return "Response{" +
                 "code=" + code +
                 ", body=" + bodyString +
@@ -49,8 +49,10 @@ public class Response {
                 '}';
     }
 
-    private String truncate(String str, final int length) {
-        int endIndex = Math.min(str.length(), length);
-        return str.substring(0, endIndex);
+    private String truncate(String string) {
+        if (string.length() <= MAX_BODY_LENGTH) {
+            return string;
+        }
+        return string.substring(0, MAX_BODY_LENGTH) + "...[snip]...";
     }
 }
