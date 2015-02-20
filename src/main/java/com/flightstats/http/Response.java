@@ -10,6 +10,8 @@ import java.util.Collection;
 
 @Value
 public class Response {
+    public static final int MAX_BODY_LENGTH = 250;
+
     int code;
     byte[] body;
     Multimap<String, String> headers;
@@ -35,5 +37,22 @@ public class Response {
      */
     public String getBodyString(Charset charset) {
         return new String(body, charset);
+    }
+
+    @Override
+    public String toString() {
+        String bodyString = truncate(getBodyString());
+        return "Response{" +
+                "code=" + code +
+                ", body=" + bodyString +
+                ", headers=" + headers +
+                '}';
+    }
+
+    private String truncate(String string) {
+        if (string.length() <= MAX_BODY_LENGTH) {
+            return string;
+        }
+        return string.substring(0, MAX_BODY_LENGTH) + "...[snip]...";
     }
 }
