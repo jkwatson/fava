@@ -8,6 +8,8 @@ import java.util.List;
 public interface FileSystem {
     OutputStream outputStream(Path fileName);
 
+    OutputStream outputStream(Path fileName, String contentType);
+
     InputStream inputStream(Path fileName);
 
     String readContents(Path fileName);
@@ -15,6 +17,8 @@ public interface FileSystem {
     boolean exists(Path fileName);
 
     void saveContent(String content, Path fileName);
+
+    void saveContent(String content, Path fileName, String contentType);
 
     /**
      * This will return a list of all paths that are prefixed with the provided Path, even if that Path doesn't point at

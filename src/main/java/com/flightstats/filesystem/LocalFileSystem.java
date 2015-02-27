@@ -26,6 +26,11 @@ public class LocalFileSystem implements FileSystem {
     }
 
     @Override
+    public OutputStream outputStream(Path fileName, String contentType) {
+        return outputStream(fileName);
+    }
+
+    @Override
     @SneakyThrows
     public InputStream inputStream(Path fileName) {
         return new FileInputStream(fileName.toFile());
@@ -47,6 +52,11 @@ public class LocalFileSystem implements FileSystem {
     public void saveContent(String content, Path fileName) {
         fileName.toFile().getParentFile().mkdirs();
         Files.write(fileName, content.getBytes(Charsets.UTF_8));
+    }
+
+    @Override
+    public void saveContent(String content, Path fileName, String contentType) {
+        saveContent(content, fileName);
     }
 
     @Override
