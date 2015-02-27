@@ -35,7 +35,12 @@ public class S3FileSystem implements FileSystem {
 
     @Override
     public OutputStream outputStream(Path fileName) {
-        return new ChunkingS3OutputStream(makeFileName(fileName));
+        return outputStream(fileName, null);
+    }
+
+    @Override
+    public OutputStream outputStream(Path fileName, String contentType) {
+        return new ChunkingS3OutputStream(makeFileName(fileName), contentType);
     }
 
     @Override
@@ -63,7 +68,13 @@ public class S3FileSystem implements FileSystem {
     @Override
     @SneakyThrows
     public void saveContent(String content, Path fileName) {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream(fileName)))) {
+        saveContent(content, fileName, null);
+    }
+
+    @Override
+    @SneakyThrows
+    public void saveContent(String content, Path fileName, String contentType) {
+        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream(fileName, contentType)))) {
             writer.write(content);
         }
     }
@@ -112,9 +123,11 @@ public class S3FileSystem implements FileSystem {
         private InitiateMultipartUploadResult initiateMultipartUploadResult;
         private int partNumber = 0;
         private final List<PartETag> eTags = new ArrayList<>();
+        private final String contentType;
 
-        public ChunkingS3OutputStream(String fileName) {
+        public ChunkingS3OutputStream(String fileName, String contentType) {
             this.fileName = fileName;
+            this.contentType = contentType;
         }
 
         @Override
@@ -132,7 +145,13 @@ public class S3FileSystem implements FileSystem {
 
         private void doFlush(boolean force) {
             if (initiateMultipartUploadResult == null) {
-                initiateMultipartUploadResult = s3.initiateMultipartUpload(new InitiateMultipartUploadRequest(bucketName, fileName));
+                InitiateMultipartUploadRequest initiateMultipartUploadRequest = new InitiateMultipartUploadRequest(bucketName, fileName);
+                if (contentType != null) {
+                    ObjectMetadata objectMetadata = new ObjectMetadata();
+                    objectMetadata.setContentType(contentType);
+                    initiateMultipartUploadRequest.setObjectMetadata(objectMetadata);
+                }
+                initiateMultipartUploadResult = s3.initiateMultipartUpload(initiateMultipartUploadRequest);
             }
             if (bytes.size() == 0 && partNumber > 0) {
 //                logger.info("skipping flushing...zero bytes remaining");
@@ -162,7 +181,8 @@ public class S3FileSystem implements FileSystem {
                 //nothing to save, so avoid the S3 error.
                 return;
             }
-            s3.completeMultipartUpload(new CompleteMultipartUploadRequest(bucketName, fileName, initiateMultipartUploadResult.getUploadId(), eTags));
+            CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(bucketName, fileName, initiateMultipartUploadResult.getUploadId(), eTags);
+            s3.completeMultipartUpload(request);
         }
     }
 }
