@@ -60,6 +60,13 @@ public class LocalFileSystem implements FileSystem {
     }
 
     @Override
+    @SneakyThrows
+    public void saveContent(byte[] content, Path fileName, String contentType) {
+        fileName.toFile().getParentFile().mkdirs();
+        Files.write(fileName, content);
+    }
+
+    @Override
     public List<Path> listFiles(Path prefixPath) {
         //all this stuff is to make this method work like S3 does when you give it a prefix to search for.
         Path parent = prefixPath.getParent();
