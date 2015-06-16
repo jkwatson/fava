@@ -13,6 +13,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static com.google.common.base.Charsets.UTF_8;
 import static java.util.stream.Collectors.toList;
 
 public class LocalFileSystem implements FileSystem {
@@ -39,7 +40,7 @@ public class LocalFileSystem implements FileSystem {
     @Override
     @SneakyThrows
     public String readContents(Path fileName) {
-        return Joiner.on('\n').join(Files.readAllLines(fileName, Charsets.UTF_8));
+        return Joiner.on('\n').join(Files.readAllLines(fileName, UTF_8));
     }
 
     @Override
@@ -50,13 +51,12 @@ public class LocalFileSystem implements FileSystem {
     @Override
     @SneakyThrows
     public void saveContent(String content, Path fileName) {
-        fileName.toFile().getParentFile().mkdirs();
-        Files.write(fileName, content.getBytes(Charsets.UTF_8));
+        saveContent(content, fileName, null);
     }
 
     @Override
     public void saveContent(String content, Path fileName, String contentType) {
-        saveContent(content, fileName);
+        saveContent(content.getBytes(UTF_8), fileName, null);
     }
 
     @Override
