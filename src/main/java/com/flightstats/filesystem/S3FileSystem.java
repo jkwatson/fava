@@ -3,7 +3,9 @@ package com.flightstats.filesystem;
 import com.amazonaws.services.s3.AmazonS3;
 import com.amazonaws.services.s3.model.*;
 import com.amazonaws.util.IOUtils;
+import com.google.common.base.Charsets;
 import com.google.common.base.Joiner;
+import com.google.common.io.ByteStreams;
 import lombok.SneakyThrows;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -74,8 +76,14 @@ public class S3FileSystem implements FileSystem {
     @Override
     @SneakyThrows
     public void saveContent(String content, Path fileName, String contentType) {
-        try (BufferedWriter writer = new BufferedWriter(new OutputStreamWriter(outputStream(fileName, contentType)))) {
-            writer.write(content);
+        saveContent(content.getBytes(Charsets.UTF_8), fileName, contentType);
+    }
+
+    @SneakyThrows
+    @Override
+    public void saveContent(byte[] content, Path fileName, String contentType) {
+        try (OutputStream outputStream = outputStream(fileName, contentType)) {
+            ByteStreams.copy(new ByteArrayInputStream(content), outputStream);
         }
     }
 

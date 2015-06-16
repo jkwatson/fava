@@ -20,6 +20,8 @@ public interface FileSystem {
 
     void saveContent(String content, Path fileName, String contentType);
 
+    void saveContent(byte[] content, Path fileName, String contentType);
+
     /**
      * This will return a list of all paths that are prefixed with the provided Path, even if that Path doesn't point at
      * a "directory", per se.  If the path does not exist, an empty List will be returned.
