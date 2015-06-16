@@ -82,7 +82,7 @@ public class HttpTemplate {
         AtomicReference<T> result = new AtomicReference<>();
         get(uri, (Response response) -> {
             if (isFailedStatusCode(response.getCode())) {
-                throw new HttpException(new Details(response.getCode(), "Post failed to: " + uri + ". response: " + response));
+                throw new HttpException(new Details(response.getCode(), "Get failed to: " + uri + ". response: " + response));
             }
             result.set(responseCreator.apply(response.getBodyString()));
         });
@@ -304,6 +304,10 @@ public class HttpTemplate {
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    public Response put(URI uri, Object body) {
+        return put(uri, convertBodyToString(body).getBytes(Charsets.UTF_8), defaultContentType);
     }
 
     /**
