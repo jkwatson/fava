@@ -32,7 +32,7 @@ public class FunctionalTest {
             List<Integer> counter = Collections.synchronizedList(new ArrayList<>());
             Functional.times(100).parallel().forEach(x -> {
                 try {
-                    Thread.sleep(random.nextInt(10));
+                    Thread.sleep(random.nextInt(15) + 10);
                     assertNull(x);
                     int i = resultCount.getAndIncrement();
                     counter.add(i);
