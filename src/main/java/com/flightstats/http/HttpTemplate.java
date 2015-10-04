@@ -82,7 +82,7 @@ public class HttpTemplate {
         AtomicReference<T> result = new AtomicReference<>();
         get(uri, (Response response) -> {
             if (isFailedStatusCode(response.getCode())) {
-                throw new HttpException(new Details(response.getCode(), "Post failed to: " + uri + ". response: " + response));
+                throw new HttpException(new Details(response.getCode(), "Get failed to: " + uri + ". response: " + response));
             }
             result.set(responseCreator.apply(response.getBodyString()));
         });
@@ -102,14 +102,15 @@ public class HttpTemplate {
         return get(uri, responseConsumer, Collections.emptyMap());
     }
 
-    public Response get(URI uri, Consumer<Response> responseConsumer, Map<String,String> extraHeaders) {
+    public Response get(URI uri, Consumer<Response> responseConsumer, Map<String, String> extraHeaders) {
         HttpGet request = new HttpGet(uri);
         addExtraHeaders(request, extraHeaders);
         return handleRequest(request, responseConsumer);
     }
 
     public Response get(URI uri, Map<String, String> extraHeaders) {
-        return get(uri, res -> {}, extraHeaders);
+        return get(uri, res -> {
+        }, extraHeaders);
     }
 
     private void addExtraHeaders(HttpRequestBase request, Map<String, String> extraHeaders) {
@@ -154,11 +155,10 @@ public class HttpTemplate {
     private Response handleRequest(HttpRequestBase request, Consumer<Response> responseConsumer) {
         request.setHeader("Accept", acceptType);
         try {
-            HttpResponse httpResponse = client.execute(request);
-            Response response = convertHttpResponse(httpResponse);
+            Response response = retryer.call(() -> convertHttpResponse(client.execute(request)));
             responseConsumer.accept(response);
             return response;
-        } catch (IOException e) {
+        } catch (ExecutionException | RetryException e) {
             throw Throwables.propagate(e);
         } finally {
             request.reset();
@@ -183,13 +183,9 @@ public class HttpTemplate {
     }
 
     public int postWithNoResponseCodeValidation(String fullUri, Object bodyToPost, Consumer<Response> responseConsumer) {
-        try {
-            String bodyEntity = convertBodyToString(bodyToPost);
-            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, defaultContentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
-            return response.getCode();
-        } catch (ExecutionException | RetryException e) {
-            throw Throwables.propagate(e);
-        }
+        String bodyEntity = convertBodyToString(bodyToPost);
+        Response response = executePost(fullUri, responseConsumer, defaultContentType, new StringEntity(bodyEntity, Charsets.UTF_8));
+        return response.getCode();
     }
 
     private Response executePost(String fullUri, String contentType, HttpEntity entity) throws Exception {
@@ -201,11 +197,11 @@ public class HttpTemplate {
         }, contentType, entity, extraHeaders);
     }
 
-    private Response executePost(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) throws Exception {
+    private Response executePost(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) {
         return executePost(fullUri, responseConsumer, contentType, entity, Collections.emptyMap());
     }
 
-    private Response executePost(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity, Map<String, String> extraHeaders) throws Exception {
+    private Response executePost(String fullUri, Consumer<Response> responseConsumer, String contentType, HttpEntity entity, Map<String, String> extraHeaders) {
         HttpPost httpPost = new HttpPost(fullUri);
         addExtraHeaders(httpPost, extraHeaders);
         return execute(httpPost, responseConsumer, contentType, entity);
@@ -221,23 +217,29 @@ public class HttpTemplate {
         }, contentType, entity);
     }
 
-    private Response execute(HttpEntityEnclosingRequestBase httpRequest, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) throws IOException {
+    private Response execute(HttpEntityEnclosingRequestBase httpRequest, Consumer<Response> responseConsumer, String contentType, HttpEntity entity) {
         try {
-            httpRequest.setHeader("Content-Type", contentType);
-            httpRequest.setHeader("Accept", acceptType);
-            httpRequest.setEntity(entity);
-            HttpResponse httpResponse = client.execute(httpRequest);
-            int statusCode = httpResponse.getStatusLine().getStatusCode();
-            byte[] body = ByteStreams.toByteArray(httpResponse.getEntity().getContent());
-            if (isRetryableStatusCode(statusCode)) {
-                logger.error("Internal server error, status code " + statusCode);
-                throw new HttpException(new Details(statusCode, httpRequest.getMethod() + " failed to: " + httpRequest.getURI() + ".  Status = " + statusCode + ", message = " + new String(body)));
-            }
-            Response response = new Response(statusCode, body, mapHeaders(httpResponse));
-            responseConsumer.accept(response);
-            return response;
-        } finally {
-            httpRequest.reset();
+            return retryer.call(() -> {
+                try {
+                    httpRequest.setHeader("Content-Type", contentType);
+                    httpRequest.setHeader("Accept", acceptType);
+                    httpRequest.setEntity(entity);
+                    HttpResponse httpResponse = client.execute(httpRequest);
+                    int statusCode = httpResponse.getStatusLine().getStatusCode();
+                    byte[] body = ByteStreams.toByteArray(httpResponse.getEntity().getContent());
+                    if (isRetryableStatusCode(statusCode)) {
+                        logger.error("Internal server error, status code " + statusCode);
+                        throw new HttpException(new Details(statusCode, httpRequest.getMethod() + " failed to: " + httpRequest.getURI() + ".  Status = " + statusCode + ", message = " + new String(body)));
+                    }
+                    Response response = new Response(statusCode, body, mapHeaders(httpResponse));
+                    responseConsumer.accept(response);
+                    return response;
+                } finally {
+                    httpRequest.reset();
+                }
+            });
+        } catch (ExecutionException | RetryException e) {
+            throw Throwables.propagate(e);
         }
     }
 
@@ -306,22 +308,25 @@ public class HttpTemplate {
         }
     }
 
+    public Response put(URI uri, Object body) {
+        return put(uri, convertBodyToString(body).getBytes(Charsets.UTF_8), defaultContentType);
+    }
+
     /**
      * todo: this needs a better name, but different than "post", so it doesn't collide with the other one. I hate type erasure!
      */
     public Response postWithResponse(String fullUri, Object bodyToPost, Consumer<Response> responseConsumer) {
-        try {
-            String bodyEntity = convertBodyToString(bodyToPost);
-            Response response = retryer.call(() -> executePost(fullUri, responseConsumer, defaultContentType, new StringEntity(bodyEntity, Charsets.UTF_8)));
-            if (isFailedStatusCode(response.getCode())) {
-                throw new HttpException(new Details(response.getCode(), "Post failed to: " + fullUri + ". response: " + response));
-            }
-            return response;
-        } catch (ExecutionException | RetryException e) {
-            throw Throwables.propagate(e);
+        String bodyEntity = convertBodyToString(bodyToPost);
+        Response response = executePost(fullUri, responseConsumer, defaultContentType, new StringEntity(bodyEntity, Charsets.UTF_8));
+        if (isFailedStatusCode(response.getCode())) {
+            throw new HttpException(new Details(response.getCode(), "Post failed to: " + fullUri + ". response: " + response));
         }
+        return response;
     }
 
+    /**
+     * Note: does not use the Retryer.  Todo: change it so that it does.
+     */
     public int postSimpleHtmlForm(String fullUri, Map<String, String> formValues) throws Exception {
         List<NameValuePair> nameValuePairs = formValues.entrySet().stream()
                 .map(entry -> new BasicNameValuePair(entry.getKey(), entry.getValue()))
@@ -341,17 +346,22 @@ public class HttpTemplate {
     }
 
     public Response delete(URI uri) {
-        HttpDelete delete = new HttpDelete(uri);
         try {
-            try {
-                HttpResponse response = client.execute(delete);
-                return convertHttpResponse(response);
-            } catch (IOException e) {
-                throw new UncheckedIOException("Error issuing DELETE against " + uri, e);
-            }
-        } finally {
-            delete.reset();
+            return retryer.call(() -> {
+                HttpDelete delete = new HttpDelete(uri);
+                try {
+                    try {
+                        HttpResponse response = client.execute(delete);
+                        return convertHttpResponse(response);
+                    } catch (IOException e) {
+                        throw new UncheckedIOException("Error issuing DELETE against " + uri, e);
+                    }
+                } finally {
+                    delete.reset();
+                }
+            });
+        } catch (ExecutionException | RetryException e) {
+            throw Throwables.propagate(e);
         }
-
     }
 }

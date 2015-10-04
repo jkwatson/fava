@@ -34,6 +34,7 @@ import static org.mockito.Mockito.*;
 
 @SuppressWarnings("unchecked")
 public class HttpTemplateTest {
+
     @Test(expected = IllegalStateException.class)
     public void testGsonRequiresCorrectContentType() throws Exception {
         final HttpTemplate httpTemplate = new HttpTemplate(mock(HttpClient.class), null, "*/*", "*/*");
@@ -60,10 +61,10 @@ public class HttpTemplateTest {
                     return httpResponse;
                 });
 
-        final HttpTemplate httpTemplate = new HttpTemplate(httpClient, null, "application/json", "application/json");
-        httpTemplate.post(URI.create("foo"), "foo".getBytes(), "*/*");
+        HttpTemplate testClass = new HttpTemplate(httpClient, dummyRetryer(), "application/json", "application/json");
+        testClass.post(URI.create("foo"), "foo".getBytes(), "*/*");
 
-        final Header[] contentType = post.get().getHeaders("Content-Type");
+        Header[] contentType = post.get().getHeaders("Content-Type");
         assertEquals(1, contentType.length);
         assertEquals("Content-Type: */*", contentType[0].toString());
     }
@@ -167,10 +168,10 @@ public class HttpTemplateTest {
         when(httpEntity.getContent()).thenReturn(new ByteArrayInputStream("some output".getBytes("UTF-8")));
 
         Gson gson = new GsonBuilder().create();
-        HttpTemplate httpTemplate = new HttpTemplate(httpClient, gson, null);
+        HttpTemplate testClass = new HttpTemplate(httpClient, gson, dummyRetryer());
 
         // when/then
-        httpTemplate.get("/some_uri", (String s) -> null);
+        testClass.get("/some_uri", (String s) -> null);
     }
 
     @Test
@@ -190,10 +191,10 @@ public class HttpTemplateTest {
         when(httpEntity.getContent()).thenReturn(new ByteArrayInputStream("some output".getBytes("UTF-8")));
 
         Gson gson = new GsonBuilder().create();
-        HttpTemplate httpTemplate = new HttpTemplate(httpClient, gson, null);
+        HttpTemplate testClass = new HttpTemplate(httpClient, gson, dummyRetryer());
 
         // when
-        int statusCode = httpTemplate.get("/some_uri", mock(Consumer.class));
+        int statusCode = testClass.get("/some_uri", mock(Consumer.class));
 
         assertEquals(400, statusCode);
     }
@@ -218,13 +219,17 @@ public class HttpTemplateTest {
         when(httpResponse.getEntity()).thenReturn(entity);
         when(httpResponse.getAllHeaders()).thenReturn(new Header[]{new BasicHeader("foo", "bar"), new BasicHeader("bar", "baz")});
 
-        HttpTemplate testClass = new HttpTemplate(httpClient, null, null);
+        HttpTemplate testClass = new HttpTemplate(httpClient, null, dummyRetryer());
 
         //WHEN
         Response result = testClass.delete(URI.create("http://lmgtfy.com"));
 
         //THEN
         assertEquals(new Response(200, body.getBytes(), expectedHeaders), result);
+    }
+
+    private Retryer<Response> dummyRetryer() {
+        return new Retryer<>(StopStrategies.neverStop(), WaitStrategies.noWait(), a -> false);
     }
 
     @Test
@@ -248,7 +253,7 @@ public class HttpTemplateTest {
         when(response.getEntity().getContent()).thenReturn(new ByteArrayInputStream(body.getBytes()));
         when(statusLine.getStatusCode()).thenReturn(200);
 
-        HttpTemplate testClass = new HttpTemplate(httpClient, null, null);
+        HttpTemplate testClass = new HttpTemplate(httpClient, null, dummyRetryer());
 
         //WHEN
         URI uri = URI.create("http://service.com/ftw");
@@ -283,7 +288,7 @@ public class HttpTemplateTest {
         when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody()));
         when(httpResponse.getAllHeaders()).thenReturn(new Header[0]);
 
-        HttpTemplate testClass = new HttpTemplate(client, null, null);
+        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer());
 
         //WHEN
         Response result = testClass.post(uri, "body message".getBytes(), "text/plain", extraHeaders);
