@@ -1,6 +1,7 @@
 package com.flightstats.http;
 
 
+import com.flightstats.util.Part;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
@@ -15,6 +16,7 @@ import org.apache.http.client.HttpClient;
 import org.apache.http.client.methods.HttpDelete;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.client.methods.HttpPost;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
 import org.apache.http.message.BasicHeader;
 import org.junit.Test;
@@ -22,13 +24,16 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
+import java.util.Arrays;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
 
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
 import static org.mockito.Matchers.any;
 import static org.mockito.Mockito.*;
 
@@ -296,5 +301,72 @@ public class HttpTemplateTest {
         //THEN
         assertEquals(expected, result);
         assertEquals("I'm extra", seenPost.get().getFirstHeader("SOMETHING").getValue());
+    }
+
+    @Test
+    public void testMultipartPost() throws Exception {
+        //GIVEN
+        String uri = "http://it.will.work.com";
+        String separator = "I_Separate";
+        Part firstPart = new Part("firstPart", ContentType.TEXT_PLAIN.getMimeType(), "This is the firstPart");
+        Part secondPart = new Part("secondPart", ContentType.TEXT_PLAIN.getMimeType(), "This is the secondPart");
+        List<Part> parts = Arrays.asList(firstPart, secondPart);
+
+        Response expected = new Response(200, "it finished".getBytes(), ArrayListMultimap.create());
+
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse httpResponse = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
+
+        AtomicReference<HttpPost> seenPost = new AtomicReference<>();
+        when(client.execute(any(HttpPost.class))).thenAnswer(invocation -> {
+            seenPost.set((HttpPost) invocation.getArguments()[0]);
+            return httpResponse;
+        });
+        when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody()));
+        when(httpResponse.getAllHeaders()).thenReturn(new Header[0]);
+
+        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer());
+
+        //WHEN
+        Response result = testClass.postMultipart(uri, parts, separator);
+
+        //THEN
+        assertEquals(expected, result);
+        assertNotNull(seenPost.get());
+        assertEquals("multipart/form-data; boundary=I_Separate", seenPost.get().getEntity().getContentType().getValue());
+    }
+
+    @Test
+    public void testMultipartPost_defaultSeparator() throws Exception {
+        //GIVEN
+        String uri = "http://it.will.still.work.com";
+        Part firstPart = new Part("firstPart", ContentType.TEXT_PLAIN.getMimeType(), "This is the firstPart");
+        Part secondPart = new Part("secondPart", ContentType.TEXT_PLAIN.getMimeType(), "This is the secondPart");
+        List<Part> parts = Arrays.asList(firstPart, secondPart);
+
+        Response expected = new Response(200, "it finished".getBytes(), ArrayListMultimap.create());
+
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse httpResponse = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
+
+        AtomicReference<HttpPost> seenPost = new AtomicReference<>();
+        when(client.execute(any(HttpPost.class))).thenAnswer(invocation -> {
+            seenPost.set((HttpPost) invocation.getArguments()[0]);
+            return httpResponse;
+        });
+        when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody()));
+        when(httpResponse.getAllHeaders()).thenReturn(new Header[0]);
+
+        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer());
+
+        //WHEN
+        Response result = testClass.postMultipart(uri, parts, null);
+
+        //THEN
+        assertEquals(expected, result);
+        assertNotNull(seenPost.get());
+        assertEquals("multipart/form-data; boundary=fava_2015-11-04", seenPost.get().getEntity().getContentType().getValue());
     }
 }

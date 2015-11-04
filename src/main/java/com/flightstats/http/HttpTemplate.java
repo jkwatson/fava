@@ -1,8 +1,10 @@
 package com.flightstats.http;
 
+import com.flightstats.util.Part;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.google.common.base.Charsets;
+import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
@@ -16,7 +18,9 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,6 +32,8 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -293,6 +299,15 @@ public class HttpTemplate {
         return post(fullUri, bodyToPost, s -> s);
     }
 
+    public Response postMultipart(String uri, List<Part> parts, String separator) {
+        try {
+            HttpEntity multipartEntity = buildMultipartEntity(parts, separator);
+            return executePost(uri, defaultContentType, multipartEntity);
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
     public <T> T post(String fullUri, Object bodyToPost, Function<String, T> responseConverter) {
         AtomicReference<T> result = new AtomicReference<>();
         postWithResponse(fullUri, bodyToPost, (Response response) -> result.set(responseConverter.apply(response.getBodyString())));
@@ -363,5 +378,18 @@ public class HttpTemplate {
         } catch (ExecutionException | RetryException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    private HttpEntity buildMultipartEntity(List<Part> parts, String separator) {
+        MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
+        if (Strings.isNullOrEmpty(separator)) {
+            entityBuilder.setBoundary("fava_" + LocalDate.now().format(DateTimeFormatter.ofPattern("YYYY-MM-dd")));
+        } else {
+            entityBuilder.setBoundary(separator);
+        }
+
+        parts.forEach(part -> entityBuilder.addTextBody(part.getName(), part.getContent(), ContentType.parse(part.getContentType())));
+
+        return entityBuilder.build();
     }
 }
