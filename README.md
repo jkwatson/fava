@@ -24,7 +24,7 @@ Available via maven central:
         <dependency>
             <groupId>com.flightstats</groupId>
             <artifactId>fava</artifactId>
-            <version>0.1.12</version>
+            <version>0.1.13</version>
         </dependency>
 ```
 
