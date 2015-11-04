@@ -381,8 +381,7 @@ public class HttpTemplate {
 
     private HttpEntity buildMultipartEntity(List<Part> parts, Optional<String> separator) {
         MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
-        String boundary = separator.orElse("fava_" + LocalDate.now().format(DateTimeFormatter.ofPattern("YYYY-MM-dd")));
-        entityBuilder.setBoundary(boundary);
+        entityBuilder.setBoundary(separator.orElse("fava_" + LocalDate.now().format(DateTimeFormatter.ofPattern("YYYY-MM-dd"))));
 
         parts.forEach(part -> entityBuilder.addTextBody(part.getName(), part.getContent(), ContentType.parse(part.getContentType())));
 
