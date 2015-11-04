@@ -1,6 +1,7 @@
 package com.flightstats.http;
 
 import com.flightstats.util.Part;
+import com.flightstats.util.UUIDGenerator;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.google.common.base.Charsets;
@@ -31,8 +32,6 @@ import java.io.UncheckedIOException;
 import java.lang.reflect.Type;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.atomic.AtomicReference;
@@ -47,6 +46,7 @@ public class HttpTemplate {
     public static final Logger logger = LoggerFactory.getLogger(HttpTemplate.class);
 
     private final HttpClient client;
+    private final UUIDGenerator uuidGenerator;
     private final Optional<Gson> gson;
     private final Retryer<Response> retryer;
     private final String defaultContentType;
@@ -58,11 +58,13 @@ public class HttpTemplate {
         this.retryer = retryer;
         this.defaultContentType = contentType;
         this.acceptType = acceptType;
+        this.uuidGenerator = new UUIDGenerator();
     }
 
     @Inject
-    public HttpTemplate(HttpClient client, Gson gson, Retryer<Response> retryer) {
+    public HttpTemplate(HttpClient client, Gson gson, Retryer<Response> retryer, UUIDGenerator uuidGenerator) {
         this.client = client;
+        this.uuidGenerator = uuidGenerator;
         this.gson = Optional.ofNullable(gson);
         this.retryer = retryer;
         this.defaultContentType = APPLICATION_JSON;
@@ -381,7 +383,7 @@ public class HttpTemplate {
 
     private HttpEntity buildMultipartEntity(List<Part> parts, Optional<String> separator) {
         MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
-        entityBuilder.setBoundary(separator.orElse("fava_" + LocalDate.now().format(DateTimeFormatter.ofPattern("YYYY-MM-dd"))));
+        entityBuilder.setBoundary(separator.orElse("fava_" + uuidGenerator.generateUUID()));
 
         parts.forEach(part -> entityBuilder.addTextBody(part.getName(), part.getContent(), ContentType.parse(part.getContentType())));
 

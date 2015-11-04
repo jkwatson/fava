@@ -2,6 +2,7 @@ package com.flightstats.http;
 
 
 import com.flightstats.util.Part;
+import com.flightstats.util.UUIDGenerator;
 import com.github.rholder.retry.Retryer;
 import com.github.rholder.retry.RetryerBuilder;
 import com.github.rholder.retry.StopStrategies;
@@ -86,7 +87,7 @@ public class HttpTemplateTest {
         when(statusLine.getStatusCode()).thenReturn(201);
 
         Gson gson = new GsonBuilder().create();
-        HttpTemplate httpTemplate = new HttpTemplate(httpClient, gson, buildRetryer());
+        HttpTemplate httpTemplate = new HttpTemplate(httpClient, gson, buildRetryer(), null);
 
         // when
         Response result = httpTemplate.postWithResponse("/some/uri", new Object(), mock(Consumer.class));
@@ -118,7 +119,7 @@ public class HttpTemplateTest {
         when(statusLine.getStatusCode()).thenReturn(502).thenReturn(503).thenReturn(201);
 
         Gson gson = new GsonBuilder().create();
-        HttpTemplate httpTemplate = new HttpTemplate(httpClient, gson, buildRetryer());
+        HttpTemplate httpTemplate = new HttpTemplate(httpClient, gson, buildRetryer(), null);
 
         // when
         Response result = httpTemplate.postWithResponse("/some/uri", new Object(), mock(Consumer.class));
@@ -145,7 +146,7 @@ public class HttpTemplateTest {
         when(httpEntity.getContent()).thenReturn(new ByteArrayInputStream("some output".getBytes("UTF-8")));
 
         Gson gson = new GsonBuilder().create();
-        HttpTemplate httpTemplate = new HttpTemplate(httpClient, gson, buildRetryer());
+        HttpTemplate httpTemplate = new HttpTemplate(httpClient, gson, buildRetryer(), null);
 
         // when
         httpTemplate.postWithResponse("/some_uri", new Object(), mock(Consumer.class));
@@ -170,7 +171,7 @@ public class HttpTemplateTest {
         when(httpEntity.getContent()).thenReturn(new ByteArrayInputStream("some output".getBytes("UTF-8")));
 
         Gson gson = new GsonBuilder().create();
-        HttpTemplate testClass = new HttpTemplate(httpClient, gson, dummyRetryer());
+        HttpTemplate testClass = new HttpTemplate(httpClient, gson, dummyRetryer(), null);
 
         // when/then
         testClass.get("/some_uri", (String s) -> null);
@@ -193,7 +194,7 @@ public class HttpTemplateTest {
         when(httpEntity.getContent()).thenReturn(new ByteArrayInputStream("some output".getBytes("UTF-8")));
 
         Gson gson = new GsonBuilder().create();
-        HttpTemplate testClass = new HttpTemplate(httpClient, gson, dummyRetryer());
+        HttpTemplate testClass = new HttpTemplate(httpClient, gson, dummyRetryer(), null);
 
         // when
         int statusCode = testClass.get("/some_uri", mock(Consumer.class));
@@ -221,7 +222,7 @@ public class HttpTemplateTest {
         when(httpResponse.getEntity()).thenReturn(entity);
         when(httpResponse.getAllHeaders()).thenReturn(new Header[]{new BasicHeader("foo", "bar"), new BasicHeader("bar", "baz")});
 
-        HttpTemplate testClass = new HttpTemplate(httpClient, null, dummyRetryer());
+        HttpTemplate testClass = new HttpTemplate(httpClient, null, dummyRetryer(), null);
 
         //WHEN
         Response result = testClass.delete(URI.create("http://lmgtfy.com"));
@@ -255,7 +256,7 @@ public class HttpTemplateTest {
         when(response.getEntity().getContent()).thenReturn(new ByteArrayInputStream(body.getBytes()));
         when(statusLine.getStatusCode()).thenReturn(200);
 
-        HttpTemplate testClass = new HttpTemplate(httpClient, null, dummyRetryer());
+        HttpTemplate testClass = new HttpTemplate(httpClient, null, dummyRetryer(), null);
 
         //WHEN
         URI uri = URI.create("http://service.com/ftw");
@@ -290,7 +291,7 @@ public class HttpTemplateTest {
         when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody()));
         when(httpResponse.getAllHeaders()).thenReturn(new Header[0]);
 
-        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer());
+        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer(), null);
 
         //WHEN
         Response result = testClass.post(uri, "body message".getBytes(), "text/plain", extraHeaders);
@@ -311,6 +312,7 @@ public class HttpTemplateTest {
 
         Response expected = new Response(200, "it finished".getBytes(), ArrayListMultimap.create());
 
+        UUIDGenerator uuidGenerator = mock(UUIDGenerator.class);
         HttpClient client = mock(HttpClient.class);
         HttpResponse httpResponse = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
 
@@ -323,7 +325,7 @@ public class HttpTemplateTest {
         when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody()));
         when(httpResponse.getAllHeaders()).thenReturn(new Header[0]);
 
-        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer());
+        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer(), uuidGenerator);
 
         //WHEN
         Response result = testClass.postMultipart(uri, parts, Optional.of(separator));
@@ -344,9 +346,11 @@ public class HttpTemplateTest {
 
         Response expected = new Response(200, "it finished".getBytes(), ArrayListMultimap.create());
 
+        UUIDGenerator uuidGenerator = mock(UUIDGenerator.class);
         HttpClient client = mock(HttpClient.class);
         HttpResponse httpResponse = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
 
+        when(uuidGenerator.generateUUID()).thenReturn(new UUID(43L, 42L));
         AtomicReference<HttpPost> seenPost = new AtomicReference<>();
         when(client.execute(any(HttpPost.class))).thenAnswer(invocation -> {
             seenPost.set((HttpPost) invocation.getArguments()[0]);
@@ -356,7 +360,7 @@ public class HttpTemplateTest {
         when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody()));
         when(httpResponse.getAllHeaders()).thenReturn(new Header[0]);
 
-        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer());
+        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer(), uuidGenerator);
 
         //WHEN
         Response result = testClass.postMultipart(uri, parts, Optional.<String>empty());
@@ -364,6 +368,6 @@ public class HttpTemplateTest {
         //THEN
         assertEquals(expected, result);
         assertNotNull(seenPost.get());
-        assertEquals("multipart/form-data; boundary=fava_2015-11-04", seenPost.get().getEntity().getContentType().getValue());
+        assertEquals("multipart/form-data; boundary=fava_00000000-0000-002b-0000-00000000002a", seenPost.get().getEntity().getContentType().getValue());
     }
 }
