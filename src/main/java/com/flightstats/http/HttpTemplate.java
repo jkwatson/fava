@@ -4,7 +4,6 @@ import com.flightstats.util.Part;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.google.common.base.Charsets;
-import com.google.common.base.Strings;
 import com.google.common.base.Throwables;
 import com.google.common.collect.ListMultimap;
 import com.google.common.collect.Multimap;
@@ -299,7 +298,7 @@ public class HttpTemplate {
         return post(fullUri, bodyToPost, s -> s);
     }
 
-    public Response postMultipart(String uri, List<Part> parts, String separator) {
+    public Response postMultipart(String uri, List<Part> parts, Optional<String> separator) {
         try {
             HttpEntity multipartEntity = buildMultipartEntity(parts, separator);
             return executePost(uri, defaultContentType, multipartEntity);
@@ -380,13 +379,10 @@ public class HttpTemplate {
         }
     }
 
-    private HttpEntity buildMultipartEntity(List<Part> parts, String separator) {
+    private HttpEntity buildMultipartEntity(List<Part> parts, Optional<String> separator) {
         MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
-        if (Strings.isNullOrEmpty(separator)) {
-            entityBuilder.setBoundary("fava_" + LocalDate.now().format(DateTimeFormatter.ofPattern("YYYY-MM-dd")));
-        } else {
-            entityBuilder.setBoundary(separator);
-        }
+        String boundary = separator.orElse("fava_" + LocalDate.now().format(DateTimeFormatter.ofPattern("YYYY-MM-dd")));
+        entityBuilder.setBoundary(boundary);
 
         parts.forEach(part -> entityBuilder.addTextBody(part.getName(), part.getContent(), ContentType.parse(part.getContentType())));
 

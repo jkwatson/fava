@@ -24,10 +24,7 @@ import org.junit.Test;
 import java.io.ByteArrayInputStream;
 import java.net.HttpURLConnection;
 import java.net.URI;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
+import java.util.*;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicReference;
 import java.util.function.Consumer;
@@ -329,7 +326,7 @@ public class HttpTemplateTest {
         HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer());
 
         //WHEN
-        Response result = testClass.postMultipart(uri, parts, separator);
+        Response result = testClass.postMultipart(uri, parts, Optional.of(separator));
 
         //THEN
         assertEquals(expected, result);
@@ -362,7 +359,7 @@ public class HttpTemplateTest {
         HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer());
 
         //WHEN
-        Response result = testClass.postMultipart(uri, parts, null);
+        Response result = testClass.postMultipart(uri, parts, Optional.<String>empty());
 
         //THEN
         assertEquals(expected, result);
