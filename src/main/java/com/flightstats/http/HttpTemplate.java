@@ -1,5 +1,7 @@
 package com.flightstats.http;
 
+import com.flightstats.util.Part;
+import com.flightstats.util.UUIDGenerator;
 import com.github.rholder.retry.RetryException;
 import com.github.rholder.retry.Retryer;
 import com.google.common.base.Charsets;
@@ -16,7 +18,9 @@ import org.apache.http.client.entity.UrlEncodedFormEntity;
 import org.apache.http.client.methods.*;
 import org.apache.http.client.utils.URIBuilder;
 import org.apache.http.entity.ByteArrayEntity;
+import org.apache.http.entity.ContentType;
 import org.apache.http.entity.StringEntity;
+import org.apache.http.entity.mime.MultipartEntityBuilder;
 import org.apache.http.message.BasicNameValuePair;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -42,6 +46,7 @@ public class HttpTemplate {
     public static final Logger logger = LoggerFactory.getLogger(HttpTemplate.class);
 
     private final HttpClient client;
+    private final UUIDGenerator uuidGenerator;
     private final Optional<Gson> gson;
     private final Retryer<Response> retryer;
     private final String defaultContentType;
@@ -53,11 +58,13 @@ public class HttpTemplate {
         this.retryer = retryer;
         this.defaultContentType = contentType;
         this.acceptType = acceptType;
+        this.uuidGenerator = new UUIDGenerator();
     }
 
     @Inject
-    public HttpTemplate(HttpClient client, Gson gson, Retryer<Response> retryer) {
+    public HttpTemplate(HttpClient client, Gson gson, Retryer<Response> retryer, UUIDGenerator uuidGenerator) {
         this.client = client;
+        this.uuidGenerator = uuidGenerator;
         this.gson = Optional.ofNullable(gson);
         this.retryer = retryer;
         this.defaultContentType = APPLICATION_JSON;
@@ -293,6 +300,19 @@ public class HttpTemplate {
         return post(fullUri, bodyToPost, s -> s);
     }
 
+    public Response postMultipart(String uri, List<Part> parts) {
+        return postMultipart(uri, parts, Optional.<String>empty());
+    }
+
+    public Response postMultipart(String uri, List<Part> parts, Optional<String> separator) {
+        try {
+            HttpEntity multipartEntity = buildMultipartEntity(parts, separator);
+            return executePost(uri, multipartEntity.getContentType().getValue(), multipartEntity);
+        } catch (Exception e) {
+            throw Throwables.propagate(e);
+        }
+    }
+
     public <T> T post(String fullUri, Object bodyToPost, Function<String, T> responseConverter) {
         AtomicReference<T> result = new AtomicReference<>();
         postWithResponse(fullUri, bodyToPost, (Response response) -> result.set(responseConverter.apply(response.getBodyString())));
@@ -363,5 +383,14 @@ public class HttpTemplate {
         } catch (ExecutionException | RetryException e) {
             throw Throwables.propagate(e);
         }
+    }
+
+    private HttpEntity buildMultipartEntity(List<Part> parts, Optional<String> separator) {
+        MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
+        entityBuilder.setBoundary(separator.orElse("fava_" + uuidGenerator.generateUUID()));
+
+        parts.forEach(part -> entityBuilder.addTextBody(part.getName(), part.getContent(), ContentType.parse(part.getContentType())));
+
+        return entityBuilder.build();
     }
 }

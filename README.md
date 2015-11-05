@@ -7,6 +7,7 @@ General dependencies:
 * java 8
 * lombok
 * commons-http
+* commons-mime
 * guava
 * guava-retrying
 * gson
@@ -23,11 +24,11 @@ Available via maven central:
         <dependency>
             <groupId>com.flightstats</groupId>
             <artifactId>fava</artifactId>
-            <version>0.1.11</version>
+            <version>0.1.13</version>
         </dependency>
 ```
 
 Or with gradle:
 ```
-        'com.flightstats:fava:0.1.11'
+        'com.flightstats:fava:0.1.13'
 ```
