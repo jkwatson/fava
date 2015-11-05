@@ -300,6 +300,10 @@ public class HttpTemplate {
         return post(fullUri, bodyToPost, s -> s);
     }
 
+    public Response postMultipart(String uri, List<Part> parts) {
+        return postMultipart(uri, parts, Optional.<String>empty());
+    }
+
     public Response postMultipart(String uri, List<Part> parts, Optional<String> separator) {
         try {
             HttpEntity multipartEntity = buildMultipartEntity(parts, separator);

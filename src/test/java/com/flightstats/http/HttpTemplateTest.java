@@ -363,7 +363,7 @@ public class HttpTemplateTest {
         HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer(), uuidGenerator);
 
         //WHEN
-        Response result = testClass.postMultipart(uri, parts, Optional.<String>empty());
+        Response result = testClass.postMultipart(uri, parts);
 
         //THEN
         assertEquals(expected, result);
