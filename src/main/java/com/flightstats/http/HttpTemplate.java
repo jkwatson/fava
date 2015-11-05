@@ -303,7 +303,7 @@ public class HttpTemplate {
     public Response postMultipart(String uri, List<Part> parts, Optional<String> separator) {
         try {
             HttpEntity multipartEntity = buildMultipartEntity(parts, separator);
-            return executePost(uri, defaultContentType, multipartEntity);
+            return executePost(uri, multipartEntity.getContentType().getValue(), multipartEntity);
         } catch (Exception e) {
             throw Throwables.propagate(e);
         }
