@@ -337,7 +337,7 @@ public class HttpTemplateTest {
     }
 
     @Test
-    public void testMultipartPost_defaultSeparator() throws Exception {
+    public void testMultipartPost_defaultSeparator_defaultContentType() throws Exception {
         //GIVEN
         String uri = "http://it.will.still.work.com";
         Part firstPart = new Part("firstPart", ContentType.TEXT_PLAIN.getMimeType(), "This is the firstPart");
@@ -369,5 +369,40 @@ public class HttpTemplateTest {
         assertEquals(expected, result);
         assertNotNull(seenPost.get());
         assertEquals("multipart/form-data; boundary=fava_00000000-0000-002b-0000-00000000002a", seenPost.get().getEntity().getContentType().getValue());
+    }
+
+    @Test
+    public void testMultipartPost_setContent() throws Exception {
+        //GIVEN
+        String uri = "http://it.will.even.still.work.com";
+        Part firstPart = new Part("firstPart", ContentType.TEXT_PLAIN.getMimeType(), "This is the firstPart");
+        Part secondPart = new Part("secondPart", ContentType.TEXT_PLAIN.getMimeType(), "This is the secondPart");
+        List<Part> parts = Arrays.asList(firstPart, secondPart);
+
+        Response expected = new Response(200, "it finished".getBytes(), ArrayListMultimap.create());
+
+        UUIDGenerator uuidGenerator = mock(UUIDGenerator.class);
+        HttpClient client = mock(HttpClient.class);
+        HttpResponse httpResponse = mock(HttpResponse.class, RETURNS_DEEP_STUBS);
+
+        when(uuidGenerator.generateUUID()).thenReturn(new UUID(43L, 42L));
+        AtomicReference<HttpPost> seenPost = new AtomicReference<>();
+        when(client.execute(any(HttpPost.class))).thenAnswer(invocation -> {
+            seenPost.set((HttpPost) invocation.getArguments()[0]);
+            return httpResponse;
+        });
+        when(httpResponse.getStatusLine().getStatusCode()).thenReturn(HttpURLConnection.HTTP_OK);
+        when(httpResponse.getEntity().getContent()).thenReturn(new ByteArrayInputStream(expected.getBody()));
+        when(httpResponse.getAllHeaders()).thenReturn(new Header[0]);
+
+        HttpTemplate testClass = new HttpTemplate(client, null, dummyRetryer(), uuidGenerator);
+
+        //WHEN
+        Response result = testClass.postMultipart(uri, parts, Optional.<String>empty(), Optional.of(HttpTemplate.MULTIPART_MIXED));
+
+        //THEN
+        assertEquals(expected, result);
+        assertNotNull(seenPost.get());
+        assertEquals("multipart/mixed; boundary=fava_00000000-0000-002b-0000-00000000002a; charset=UTF-8", seenPost.get().getFirstHeader("Content-type").getValue());
     }
 }

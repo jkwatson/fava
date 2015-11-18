@@ -42,6 +42,7 @@ import static com.flightstats.http.HttpException.Details;
 import static java.util.stream.Collectors.toList;
 
 public class HttpTemplate {
+    public static final ContentType MULTIPART_MIXED = ContentType.create("multipart/mixed", Charsets.UTF_8);
     public static final String APPLICATION_JSON = "application/json";
     public static final Logger logger = LoggerFactory.getLogger(HttpTemplate.class);
 
@@ -305,8 +306,12 @@ public class HttpTemplate {
     }
 
     public Response postMultipart(String uri, List<Part> parts, Optional<String> separator) {
+        return postMultipart(uri, parts, separator, Optional.empty());
+    }
+
+    public Response postMultipart(String uri, List<Part> parts, Optional<String> separator, Optional<ContentType> contentType) {
         try {
-            HttpEntity multipartEntity = buildMultipartEntity(parts, separator);
+            HttpEntity multipartEntity = buildMultipartEntity(parts, separator, contentType);
             return executePost(uri, multipartEntity.getContentType().getValue(), multipartEntity);
         } catch (Exception e) {
             throw Throwables.propagate(e);
@@ -385,8 +390,12 @@ public class HttpTemplate {
         }
     }
 
-    private HttpEntity buildMultipartEntity(List<Part> parts, Optional<String> separator) {
+    private HttpEntity buildMultipartEntity(List<Part> parts, Optional<String> separator, Optional<ContentType> contentType) {
         MultipartEntityBuilder entityBuilder = MultipartEntityBuilder.create();
+        //If we dont set the content type, the lib will set the default.
+        if (contentType.isPresent()) {
+            entityBuilder.setContentType(contentType.get());
+        }
         entityBuilder.setBoundary(separator.orElse("fava_" + uuidGenerator.generateUUID()));
 
         parts.forEach(part -> entityBuilder.addTextBody(part.getName(), part.getContent(), ContentType.parse(part.getContentType())));
