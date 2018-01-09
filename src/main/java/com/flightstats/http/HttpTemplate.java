@@ -77,7 +77,7 @@ public class HttpTemplate {
         try {
             uri = new URIBuilder(hostUrl).setPath(path).setParameters(queryParams).build();
         } catch (URISyntaxException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
         return get(uri, responseCreator);
     }
@@ -167,7 +167,7 @@ public class HttpTemplate {
             responseConsumer.accept(response);
             return response;
         } catch (ExecutionException | RetryException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         } finally {
             request.reset();
         }
@@ -247,7 +247,7 @@ public class HttpTemplate {
                 }
             });
         } catch (ExecutionException | RetryException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -282,7 +282,7 @@ public class HttpTemplate {
         try {
             return executePost(uri.toString(), extraHeaders.getOrDefault("Content-Type", defaultContentType), new ByteArrayEntity(bytes), extraHeaders);
         } catch (Exception e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -314,7 +314,7 @@ public class HttpTemplate {
             HttpEntity multipartEntity = buildMultipartEntity(parts, separator, contentType);
             return executePost(uri, multipartEntity.getContentType().getValue(), multipartEntity);
         } catch (Exception e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -329,7 +329,7 @@ public class HttpTemplate {
             HttpPut httpPut = new HttpPut(uri.toString());
             return execute(httpPut, contentType, new ByteArrayEntity(bytes));
         } catch (Exception e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
@@ -386,7 +386,7 @@ public class HttpTemplate {
                 }
             });
         } catch (ExecutionException | RetryException e) {
-            throw Throwables.propagate(e);
+            throw new RuntimeException(e);
         }
     }
 
