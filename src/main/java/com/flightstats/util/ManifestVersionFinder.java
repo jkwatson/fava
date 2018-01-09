@@ -1,7 +1,6 @@
 package com.flightstats.util;
 
-import com.google.common.base.Objects;
-import com.google.common.base.Throwables;
+import com.google.common.base.MoreObjects;
 
 import java.io.IOException;
 import java.io.UncheckedIOException;
@@ -40,7 +39,7 @@ public class ManifestVersionFinder {
             Manifest manifest = new Manifest(new URL(manifestPath).openStream());
             Attributes attr = manifest.getMainAttributes();
             String value = attr.getValue("Implementation-Version");
-            return Objects.firstNonNull(value, defaultVersion);
+            return MoreObjects.firstNonNull(value, defaultVersion);
         } catch (IOException e) {
             throw new UncheckedIOException(e);
         }
